@@ -1,0 +1,11 @@
+C:\Users\reini\Source\Repos\monoidinc\Backend-API\backend-api\bin\Debug\netcoreapp2.0\backend-api.deps.json
+C:\Users\reini\Source\Repos\monoidinc\Backend-API\backend-api\bin\Debug\netcoreapp2.0\backend-api.runtimeconfig.json
+C:\Users\reini\Source\Repos\monoidinc\Backend-API\backend-api\bin\Debug\netcoreapp2.0\backend-api.runtimeconfig.dev.json
+C:\Users\reini\Source\Repos\monoidinc\Backend-API\backend-api\bin\Debug\netcoreapp2.0\backend-api.dll
+C:\Users\reini\Source\Repos\monoidinc\Backend-API\backend-api\obj\Debug\netcoreapp2.0\backend-api.csprojResolveAssemblyReference.cache
+C:\Users\reini\Source\Repos\monoidinc\Backend-API\backend-api\obj\Debug\netcoreapp2.0\backend-api.csproj.CoreCompileInputs.cache
+C:\Users\reini\Source\Repos\monoidinc\Backend-API\backend-api\obj\Debug\netcoreapp2.0\backend-api.AssemblyInfoInputs.cache
+C:\Users\reini\Source\Repos\monoidinc\Backend-API\backend-api\obj\Debug\netcoreapp2.0\backend-api.AssemblyInfo.cs
+C:\Users\reini\Source\Repos\monoidinc\Backend-API\backend-api\bin\Debug\netcoreapp2.0\backend-api.pdb
+C:\Users\reini\Source\Repos\monoidinc\Backend-API\backend-api\obj\Debug\netcoreapp2.0\backend-api.dll
+C:\Users\reini\Source\Repos\monoidinc\Backend-API\backend-api\obj\Debug\netcoreapp2.0\backend-api.pdb

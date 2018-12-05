@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2010
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "backend-api", "backend-api\backend-api.csproj", "{5D7F7A6B-D44A-46C3-8D92-18D214980C4A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "backend-api", "backend-api\backend-api.csproj", "{5D7F7A6B-D44A-46C3-8D92-18D214980C4A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "backend-core", "backend-core\backend-core.csproj", "{71F09EF0-3976-4C88-B12E-3F46FF990399}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{5D7F7A6B-D44A-46C3-8D92-18D214980C4A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5D7F7A6B-D44A-46C3-8D92-18D214980C4A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5D7F7A6B-D44A-46C3-8D92-18D214980C4A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{71F09EF0-3976-4C88-B12E-3F46FF990399}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{71F09EF0-3976-4C88-B12E-3F46FF990399}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{71F09EF0-3976-4C88-B12E-3F46FF990399}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{71F09EF0-3976-4C88-B12E-3F46FF990399}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

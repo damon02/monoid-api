@@ -34,11 +34,18 @@ namespace BackendApi.Controllers
         [ApiExplorerSettings(IgnoreApi = true)]
         public JsonResult CreateResponse(string message = null, string data = null, bool success = false)
         {
-            JObject response = new JObject();
-            
-            response["success"] = success;
-            response["message"] = message;
-            response["data"] = data;
+            JToken jsonData = null;
+            if (!string.IsNullOrWhiteSpace(data))
+            {
+                jsonData = JToken.Parse(data);
+            }
+
+            JObject response = new JObject
+            {
+                ["success"] = success,
+                ["message"] = message,
+                ["data"] = jsonData
+            };
 
             return new JsonResult(response);
         }

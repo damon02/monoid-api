@@ -44,11 +44,9 @@ namespace backend_core
             mOnline = mDatabase.RunCommandAsync((Command<BsonDocument>)"{ping:1}").Wait(1000);
         }
 
-        /// <summary>
-        /// Get user for authorization purposes
-        /// </summary>
-        /// <param name="user"></param>
-        /// <returns></returns>
+        #region Users
+
+        /// <summary> Get a user </summary>
         public DataResult<User> GetUser(User user)
         {
             DataResult<User> result = new DataResult<User>();
@@ -59,9 +57,21 @@ namespace backend_core
                 result.ErrorMessage = DB_ERROR;
                 return result;
             }
+            List<User> users = new List<User>();
 
-            List<User> users = GetUserCollection().Find(x => x.UserName == user.UserName
+            if(!string.IsNullOrWhiteSpace(user.EmailAddress))
+            {
+                users = GetUserCollection().Find(x => x.EmailAddress == user.EmailAddress).ToList();
+            }
+            else if(!string.IsNullOrWhiteSpace(user.UserName) && !string.IsNullOrWhiteSpace(user.Password))
+            {
+                users = GetUserCollection().Find(x => x.UserName == user.UserName
                                                         && x.Password == user.Password).ToList();
+            }
+            else if(user.Id != null)
+            {
+                users = GetUserCollection().Find(x => x.Id == user.Id).ToList();
+            }
 
             if(users.Count > 0)
             {
@@ -77,11 +87,7 @@ namespace backend_core
             return result;
         }
 
-        /// <summary>
-        /// Creates a user during the registration process
-        /// </summary>
-        /// <param name="user"></param>
-        /// <returns></returns>
+        /// <summary> Creates a new user </summary>
         public DataResult<User> CreateUser(User user)
         {
             DataResult<User> result = new DataResult<User>();
@@ -109,6 +115,38 @@ namespace backend_core
 
             return result;
         }
+
+        /// <summary> Updates a user </summary>
+        public DataResult<User> UpdateUser(User user)
+        {
+            DataResult<User> result = new DataResult<User>();
+
+            if (!mOnline)
+            {
+                result.Success = false;
+                result.ErrorMessage = DB_ERROR;
+                return result;
+            }
+
+            try
+            {   
+                GetUserCollection().UpdateOne(Builders<User>.Filter.Eq(x => x.Id, user.Id),
+                                              Builders<User>.Update.Set(x => x.Password, user.Password)
+                                                                   .Set(x => x.Token, user.Token));
+                result.Success = true;
+            }
+            catch
+            {
+                result.Success = false;
+                result.ErrorMessage = "Unable to update user";
+            }
+
+            return result;
+        }
+
+        #endregion
+
+        #region Packets
 
         /// <summary>
         /// Save all packets from storage
@@ -140,6 +178,9 @@ namespace backend_core
             return result;
         }
 
+        #endregion
+
+        #region EndPointLog & ErrorLog
         // Errorlog store
         public DataResult<ErrorLog> StoreErrorLog(ErrorLog log)
         {
@@ -191,29 +232,119 @@ namespace backend_core
 
             return result;
         }
+        #endregion
 
-        // Helper to easily obtain the error log collection
+        #region RecoveryRequest
+        // RecoveryRequest store
+        public DataResult<RecoveryRequest> StoreRecoveryRequest(RecoveryRequest rr)
+        {
+            DataResult<RecoveryRequest> result = new DataResult<RecoveryRequest>();
+
+            if (!mOnline)
+            {
+                result.Success = false;
+                result.ErrorMessage = DB_ERROR;
+                return result;
+            }
+
+            try
+            {
+                GetRecoveryRequestCollection().InsertOne(rr);
+                result.Success = true;
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.ErrorMessage = ex.Message;
+            }
+
+            return result;
+        }
+
+        public DataResult<RecoveryRequest> DeleteRecoveryRequest(RecoveryRequest rr)
+        {
+            DataResult<RecoveryRequest> result = new DataResult<RecoveryRequest>();
+
+            if (!mOnline)
+            {
+                result.Success = false;
+                result.ErrorMessage = DB_ERROR;
+                return result;
+            }
+
+            try
+            {
+                GetRecoveryRequestCollection().DeleteOne(Builders<RecoveryRequest>.Filter.Eq(x => x.Token, rr.Token));
+                result.Success = true;
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.ErrorMessage = ex.Message;
+            }
+
+            return result;
+        }
+
+        // RecoveryRequest get
+        public DataResult<RecoveryRequest> GetRecoveryRequest(RecoveryRequest rr)
+        {
+            DataResult<RecoveryRequest> result = new DataResult<RecoveryRequest>();
+
+            if (!mOnline)
+            {
+                result.Success = false;
+                result.ErrorMessage = DB_ERROR;
+                return result;
+            }
+
+            List<RecoveryRequest> recoveryRequests = new List<RecoveryRequest>();
+
+            if(!string.IsNullOrWhiteSpace(rr.Token))
+            {
+                recoveryRequests = GetRecoveryRequestCollection().Find(x => x.Token == rr.Token).ToList();
+            }
+
+            if(recoveryRequests.Count > 0)
+            {
+                result.Success = true;
+                result.Data = recoveryRequests;
+            }
+            else
+            {
+                result.Success = false;
+                result.ErrorMessage = "Unable to find the request";
+            }
+
+            return result;
+        }
+        #endregion
+
+        #region Helpers - Collections
+        private IMongoCollection<RecoveryRequest> GetRecoveryRequestCollection()
+        {
+            return mDatabase.GetCollection<RecoveryRequest>("recoveryrequest");
+        }
+
         private IMongoCollection<ErrorLog> GetErrorLogCollection()
         {
             return mDatabase.GetCollection<ErrorLog>("errorlog");
         }
 
-        // Helper to easily obtain the endpointlog collection
         private IMongoCollection<EndPointLog> GetEndPointLogCollection()
         {
             return mDatabase.GetCollection<EndPointLog>("endpointlog");
         }
 
-        // Helper to easily obtain the usercollection
         private IMongoCollection<User> GetUserCollection()
         {
             return mDatabase.GetCollection<User>("user");
         }
 
-        // Helper to easily obtain the packetcollection
         private IMongoCollection<Packet> GetPacketCollection()
         {
             return mDatabase.GetCollection<Packet>("packet");
         }
+        #endregion
     }
 }

@@ -7,12 +7,10 @@ using backend_core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using MongoDB.Bson;
 using Newtonsoft.Json;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Claims;
-using System.Threading.Tasks;
 
 namespace BackendApi.Controllers
 {
@@ -74,6 +72,17 @@ namespace BackendApi.Controllers
             DataResult<User> dr = authorizeCore.Authenticate(new User() { UserName = model.UserName, Password = model.Password }, _appSettings.Value.Secret);
 
             return CreateResponse(dr.ErrorMessage, JsonConvert.SerializeObject(new { userName = dr.Data.FirstOrDefault().UserName, token = dr.Data.FirstOrDefault().Token }), dr.Success);
+        }
+
+        [HttpGet]
+        [Route("get-token")]
+        public ActionResult GetToken()
+        {
+            if (string.IsNullOrWhiteSpace(Context.UserId)) return CreateResponse("Unable to generate a token", success: false);
+
+            string token = authorizeCore.GenerateToken(new User { Id = ObjectId.Parse(Context.UserId) });
+
+            return CreateResponse(data: token);
         }
     }
 }

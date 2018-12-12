@@ -11,10 +11,10 @@ using System.Linq;
 
 namespace BackendApi.Controllers
 {
-    [Route("api/user")]
+    [Route("user")]
     public class UserController : IApiController
     {
-        private AuthorizeCore authorizeCore = AuthorizeCore.Instance;
+        private UserCore userCore = UserCore.Instance;
 
         [Route("password-recovery")]
         [AllowAnonymous]
@@ -34,7 +34,7 @@ namespace BackendApi.Controllers
                 return CreateResponse(string.Join("\n", passwordErrors));
             }
 
-            DataResult<RecoveryRequest> dr = authorizeCore.Recovery(model.Password, model.Token);
+            DataResult<RecoveryRequest> dr = userCore.Recovery(model.Password, model.Token);
 
             return CreateResponse(success: dr.Success);
         }
@@ -51,9 +51,26 @@ namespace BackendApi.Controllers
 
             if (!validator.IsValidEmail(model.EmailAddress)) return CreateResponse("Invalid email address");
 
-            KeyValuePair<bool, string> kv = authorizeCore.GenerateRecoveryLink(model.EmailAddress);
+            KeyValuePair<bool, string> kv = userCore.GenerateRecoveryLink(model.EmailAddress);
 
             return CreateResponse(kv.Value, success: kv.Key);
+        }
+
+        [Route("save-settings")]
+        [HttpPost]
+        public ActionResult SaveUserSettings([FromBody] SaveUserSettingsModel model)
+        {
+            if (model == null) return CreateResponse("None of the parameters can be null");
+
+            Validator validator = new Validator();
+
+            bool passedEmailValidation = false; model.NotificationRecipients.All(x => validator.IsValidEmail(x));
+
+            if (!passedEmailValidation) return CreateResponse("Invalid email address in recipients list");
+
+            userCore.SaveSettings(new Settings { EnabledNotifications = model.EnabledNotifications, NotificationRecipients = model.NotificationRecipients });
+
+            return CreateResponse();
         }
     }
 }

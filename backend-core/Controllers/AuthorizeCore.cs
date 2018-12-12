@@ -4,6 +4,7 @@
  *______________________________*/
 
 using Microsoft.IdentityModel.Tokens;
+using MongoDB.Bson;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -34,11 +35,7 @@ namespace backend_core
             }
         }
         
-        /// <summary>
-        /// Register a user 
-        /// </summary>
-        /// <param name="user"></param>
-        /// <returns></returns>
+        /// <summary> Register a new user </summary>
         public DataResult<User> RegisterUser(User user)
         {
             Validator validator = new Validator();
@@ -53,12 +50,13 @@ namespace backend_core
 
             DataResult<User> dr = database.CreateUser(user);
 
-            // Todo => sent an email to the user before the account is activated
-
+            // Todo => send an email to the user before the account is activated
+            
 
             return dr;
         }
 
+        /// <summary> Authenticate a user and return a token that can be used to authorize the user </summary>
         public DataResult<User> Authenticate(User user, string appSecret)
         {
             Validator validator = new Validator();
@@ -84,90 +82,13 @@ namespace backend_core
             };
 
             SecurityToken token = tokenHandler.CreateToken(tokenDescriptor);
-            user.Token = tokenHandler.WriteToken(token);
+            authorizedUser.Token = tokenHandler.WriteToken(token);
 
-            user.Password = null;
+            authorizedUser.Password = null;
 
-            dr.Data = new List<User>() { user };
+            dr.Data = new List<User>() { authorizedUser };
 
             return dr;           
-        }
-
-        /// <summary> Recovery process -> validate token -> save new password </summary>
-        public DataResult<RecoveryRequest> Recovery(string newPassword, string token)
-        {
-            DataResult<RecoveryRequest> drDefaultResponse = new DataResult<RecoveryRequest>() { Success = false, ErrorMessage = "Unable to process your recovery request" };
-            DataResult<RecoveryRequest> drRecoveryRequest = database.GetRecoveryRequest(new RecoveryRequest { Token = token });
-
-            if (!drRecoveryRequest.Success) return drDefaultResponse;
-
-            RecoveryRequest recoveryRequest = drRecoveryRequest.Data.FirstOrDefault();
-
-            if (recoveryRequest == null) return drDefaultResponse;
-
-            if (DateTime.Compare(recoveryRequest.ExpiryDate, DateTime.Now) > 1) return drDefaultResponse;
-
-            DataResult<User> drUser = database.GetUser(new User { Id = recoveryRequest.UserId });
-
-            if (!drUser.Success) return drDefaultResponse;
-
-            User user = drUser.Data.FirstOrDefault();
-
-            if (user == null) return drDefaultResponse;
-
-            Validator validator = new Validator();
-            user.Password = newPassword;
-            string hashedPassword = validator.PasswordHasher(user);
-            user.Password = hashedPassword;
-
-            DataResult<User> drUserUpdated = database.UpdateUserPassword(user);
-
-            if (!drUserUpdated.Success) return drDefaultResponse;
-
-            DataResult<RecoveryRequest> drDeleteRecoveryRequest = database.DeleteRecoveryRequest(recoveryRequest);
-
-            return drDeleteRecoveryRequest;
-        }
-
-        /// <summary> Generates a token and sends an email to the supplied emailaddress with the link </summary>
-        public KeyValuePair<bool, string> GenerateRecoveryLink(string emailAddress)
-        {
-            bool succeeded = false;
-            KeyValuePair<bool, string> defaultResponse = new KeyValuePair<bool, string>(succeeded, "Unable to generate recovery link");      
-
-            DataResult<User> drUser = database.GetUser(new User { EmailAddress = emailAddress });
-
-            if (!drUser.Success) return defaultResponse;
-
-            if (drUser.Data.Count > 1) return defaultResponse;
-
-            User user = drUser.Data.FirstOrDefault();
-
-            if (user == null) return defaultResponse;
-
-            string token = Guid.NewGuid().ToString();
-
-            RecoveryRequest rRequest = new RecoveryRequest()
-            {
-                UserId = user.Id,
-                ExpiryDate = DateTime.Now.AddHours(1),
-                Token = token
-            };
-
-            DataResult<RecoveryRequest> drRecoveryRequest = database.StoreRecoveryRequest(rRequest);
-
-            string link = "{url}?token="+token;
-
-            string message = string.Empty;
-            message += "<a href=" + link + ">Click here</a> to recover your password";
-            
-            string subject = "Monoid password recovery";
-            string recipient = user.EmailAddress;
-
-            Mailer mailer = new Mailer();
-            succeeded = mailer.SendEmail(message, subject, recipient);
-
-            return new KeyValuePair<bool, string>(succeeded, link);
         }
 
         /// <summary> Generate a token for usage on the embedded system </summary>
@@ -186,6 +107,26 @@ namespace backend_core
             database.UpdateUser(nUser);
 
             return token;
+        }
+
+        /// <summary> Get the embedded system token </summary>
+        public string GetToken(ObjectId uId)
+        {
+            DataResult<User> dr = database.GetUser(new User { Id = uId });
+
+            if (!dr.Success) return null;
+
+            return dr.Data.FirstOrDefault().Token;
+        }
+
+        /// <summary> Authorize an embedded system token </summary>
+        public User AuthorizeToken(string token)
+        {
+            DataResult<User> dr = database.GetUser(new User { Token = token });
+
+            if (!dr.Success) return null;
+
+            return dr.Data.FirstOrDefault();
         }
     }
 }

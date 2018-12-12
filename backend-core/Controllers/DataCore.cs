@@ -3,6 +3,7 @@
  *__________DataCore.cs_________*
  *______________________________*/
 
+using MongoDB.Bson;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -30,13 +31,12 @@ namespace backend_core
             }
         }
 
-        public DataResult<Packet> StorePackets(JToken json)
+        /// <summary> Store packets into mongodb as bsondocument </summary>
+        public DataResult<Packet> StorePackets(JToken json, ObjectId uId)
         {
-            DataResult<Packet> dr = null;
+            List<Packet> packets = json.ConvertToPackets(uId);
 
-            List<Packet> packets = json.ConvertToPackets();
-
-            dr = database.StorePackets(packets);
+            DataResult<Packet> dr = database.StorePackets(packets);
 
             return dr;
         }

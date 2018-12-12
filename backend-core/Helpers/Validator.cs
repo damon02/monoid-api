@@ -15,12 +15,9 @@ namespace backend_core
     {
         const int minPasswordLength = 10;
         const int maxUserNameLength = 50;
+        private Database database = Database.Instance;
 
-        /// <summary>
-        /// Validate email
-        /// </summary>
-        /// <param name="email"></param>
-        /// <returns></returns>
+        /// <summary> Determine if supplied email address is a legitimate email address </summary>
         public bool IsValidEmail(string email)
         {
             try
@@ -34,23 +31,17 @@ namespace backend_core
             }
         }
 
-        /// <summary>
-        /// Validate username
-        /// </summary>
-        /// <param name="userName"></param>
-        /// <returns></returns>
+        /// <summary> Determine if a user exists and if it's length is valid </summary>
         public bool IsValidUserName(string userName)
         {
             if (userName.Length > maxUserNameLength) return false;
 
+            if (database.CheckUsername(userName).Success) return false;
+
             return true;
         }
 
-        /// <summary>
-        /// Validate password
-        /// </summary>
-        /// <param name="password"></param>
-        /// <returns>List of errors if there are any</returns>
+        /// <summary> Determine is a password is valid and meets the requirements </summary>
         public List<string> IsValidPassword(string password)
         {
             List<string> errors = new List<string>();
@@ -77,6 +68,8 @@ namespace backend_core
             return errors;
         }
 
+
+        /// <summary> Generate a unique salt for each user </summary>
         public byte[] Salt(User user)
         {
             string u = user.UserName;
@@ -110,6 +103,7 @@ namespace backend_core
             return Encoding.ASCII.GetBytes(salt);
         }
 
+        /// <summary> Hash password with the PBKDF2 hashing algorithm </summary>
         public string PasswordHasher(User user)
         {
             if (user == null) return null;

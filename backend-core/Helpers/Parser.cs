@@ -43,10 +43,10 @@ namespace backend_core
 
     public static class ParserExtension
     {
-        public static List<Packet> ConvertToPackets(this JToken token)
+        public static List<Packet> ConvertToPackets(this JToken token, ObjectId uId)
         {
             List<Packet> packets = new List<Packet>();
-
+            
             List<JObject> jObjects = new List<JObject>();
 
             if (token is JArray)
@@ -68,6 +68,7 @@ namespace backend_core
 
                 Packet packet = new Packet
                 {
+                    UserId = uId,
                     CreationDate = DateTime.Now,
                     PacketData = BsonDocument.Parse(parsedJObj.ToString())
                 };

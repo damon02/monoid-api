@@ -9,12 +9,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace BackendApi.Controllers
 {
-    [Route("api/authorize")]
+    [Route("authorize")]
     public class AuthorizeController : IApiController
     {
         private AuthorizeCore authorizeCore = AuthorizeCore.Instance;
@@ -28,6 +29,7 @@ namespace BackendApi.Controllers
         [AllowAnonymous]
         [HttpPost]
         [Route("register-user")]
+        /// <summary> Register a new user </summary>
         public ActionResult Register([FromBody]RegisterUserModel model)
         {
             if (model == null || (string.IsNullOrWhiteSpace(model.EmailAddress) 
@@ -55,13 +57,17 @@ namespace BackendApi.Controllers
 
             User createdUser = dr.Data.FirstOrDefault();
 
+            // Initialize user settings
+            UserCore.Instance.SaveSettings(new Settings { UserId = createdUser.Id, EnabledNotifications = true, NotificationRecipients = new string[] { createdUser.EmailAddress } });
+            
             return CreateResponse(data: JsonConvert.SerializeObject(new { userName = createdUser.UserName, emailAddress = createdUser.EmailAddress }), success: dr.Success);
         }
 
         [AllowAnonymous]
         [HttpPost]
         [Route("request-token")]
-        public ActionResult Token([FromBody]RequestTokenModel model)
+        /// <summary> Request a token for a user (Login) </summary>
+        public ActionResult RequestToken([FromBody]RequestTokenModel model)
         {
             if (model == null ||
                 (string.IsNullOrWhiteSpace(model.UserName))
@@ -71,18 +77,43 @@ namespace BackendApi.Controllers
 
             DataResult<User> dr = authorizeCore.Authenticate(new User() { UserName = model.UserName, Password = model.Password }, _appSettings.Value.Secret);
 
-            return CreateResponse(dr.ErrorMessage, JsonConvert.SerializeObject(new { userName = dr.Data.FirstOrDefault().UserName, token = dr.Data.FirstOrDefault().Token }), dr.Success);
+            if (!dr.Success) return CreateResponse(dr.ErrorMessage);
+
+            User user = dr.Data.FirstOrDefault();
+
+            Settings settings = UserCore.Instance.GetSettings(user.Id);
+
+            JObject data = new JObject();
+            data["user"] = JToken.FromObject(new { userName = user.UserName, token = user.Token });
+
+            if (settings != null)
+            {
+                data["settings"] = JToken.FromObject(new { enabledNotifications = settings.EnabledNotifications,
+                                                           notificationRecipients = settings.NotificationRecipients});
+            }
+
+            return CreateResponse(data: JsonConvert.SerializeObject(data), success: dr.Success);
         }
 
         [HttpGet]
         [Route("get-token")]
-        public ActionResult GetToken()
+        /// <summary> Get an already existing token for an embedded system refresh if requested </summary>
+        public ActionResult GetToken(bool refresh)
         {
-            if (string.IsNullOrWhiteSpace(Context.UserId)) return CreateResponse("Unable to generate a token", success: false);
+            if (string.IsNullOrWhiteSpace(Context.UserId)) return CreateResponse("Unable to get token", success: false);
 
-            string token = authorizeCore.GenerateToken(new User { Id = ObjectId.Parse(Context.UserId) });
+            string token = string.Empty;
 
-            return CreateResponse(data: token);
+            if(refresh)
+            {
+                token = authorizeCore.GenerateToken(new User { Id = ObjectId.Parse(Context.UserId) });
+            }
+            else
+            {
+                token = authorizeCore.GetToken(ObjectId.Parse(Context.UserId));
+            }
+
+            return CreateResponse(data: JsonConvert.SerializeObject(new { token = token }), success: true);
         }
     }
 }

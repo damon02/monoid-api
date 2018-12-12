@@ -52,8 +52,7 @@ namespace BackendApi
                 {
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(secretKey),
-                    ValidateIssuer = true,
-                    ValidIssuer = "http://localhost:5000",
+                    ValidateIssuer = false,
                     ValidateAudience = false
                 };
             });
@@ -84,8 +83,6 @@ namespace BackendApi
             app.UseMvc();
 
             app.UseSwagger();
-
-
 
             // Swagger UI enabled for accessing the documentation in a defined url
             app.UseSwaggerUI(c =>

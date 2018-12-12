@@ -16,6 +16,7 @@ namespace backend_core
     public class Packet
     {
         public ObjectId Id { get; set; }
+        public ObjectId UserId { get; set; }
         public DateTime CreationDate { get; set; }
         public BsonDocument PacketData { get; set; }
     }

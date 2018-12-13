@@ -72,6 +72,7 @@ namespace BackendApi
                 app.UseDeveloperExceptionPage();
             }
 
+            // TODO => FIX CORS ONLY ALLOW https://dashboard.monoidinc.nl & StorePackets from x ??
             app.UseCors(builder => builder
                 .AllowAnyOrigin()
                 .AllowAnyMethod()

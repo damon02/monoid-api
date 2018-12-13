@@ -78,27 +78,29 @@ namespace backend_core
 
             if (user == null) return defaultResponse;
 
-            string token = Guid.NewGuid().ToString();
+            string recoveryToken = new Validator().RandomTemporaryString(12);
 
             RecoveryRequest rRequest = new RecoveryRequest()
             {
                 UserId = user.Id,
                 ExpiryDate = DateTime.Now.AddHours(1),
-                Token = token
+                Token = recoveryToken
             };
 
             DataResult<RecoveryRequest> drRecoveryRequest = database.StoreRecoveryRequest(rRequest);
 
-            string link = "{url}?token=" + token;
+            string link = DASHBOARD_URL+"password-recovery/?token=" + recoveryToken;
 
-            string message = string.Empty;
-            message += "<a href=" + link + ">Click here</a> to recover your password";
+            string body = string.Empty;
+            body += "Hi, \n\n";
+            body += "<a href=" + link + ">Click here</a> to recover your password \n\n";
+            body += "Monoid Inc.";
 
-            string subject = "Monoid password recovery";
+            string subject = "Monoid Dashboard: Password recovery";
             string recipient = user.EmailAddress;
 
             Mailer mailer = new Mailer();
-            succeeded = mailer.SendEmail(message, subject, recipient);
+            succeeded = mailer.SendEmail(body, subject, recipient);
 
             return defaultResponse;
         }

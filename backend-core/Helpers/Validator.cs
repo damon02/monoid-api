@@ -6,6 +6,7 @@
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Mail;
 using System.Text;
 
@@ -16,6 +17,7 @@ namespace backend_core
         const int minPasswordLength = 10;
         const int maxUserNameLength = 50;
         private Database database = Database.Instance;
+        private static Random random = new Random();
 
         /// <summary> Determine if supplied email address is a legitimate email address </summary>
         public bool IsValidEmail(string email)
@@ -68,6 +70,13 @@ namespace backend_core
             return errors;
         }
 
+        /// <summary> Generate a random temporary string => used for account activation/password recovery </summary>
+        public string RandomTemporaryString(int length)
+        {
+            const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            return new string(Enumerable.Repeat(chars, length)
+              .Select(s => s[random.Next(s.Length)]).ToArray());
+        }
 
         /// <summary> Generate a unique salt for each user </summary>
         public byte[] Salt(User user)

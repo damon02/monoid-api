@@ -46,14 +46,63 @@ namespace backend_core
 
             user.Password = hashedPassword;
 
-            user.Activated = true;
-
             DataResult<User> dr = database.CreateUser(user);
 
             // Todo => send an email to the user before the account is activated
-            
+            Mailer mailer = new Mailer();
+
+            string activationToken = validator.RandomTemporaryString(12);
+
+            ActivationRequest activationRequest = new ActivationRequest
+            {
+                UserId = user.Id,
+                Token = activationToken
+            };
+
+            string link = DASHBOARD_URL + "account-activation?activation-token="+ activationToken;
+
+            string body = string.Empty;
+            body += "Hi, \n\n";
+            body += "<a href=" + link + ">Click here</a> to activate your account \n\n";
+            body += "Monoid Inc.";
+
+            string subject = "Monoid Dashboard: Account activation";
+            string recipient = user.EmailAddress;
+
+            mailer.SendEmail(body, subject, recipient);
 
             return dr;
+        }
+
+        /// <summary> Activate account </summary>
+        public DataResult<ActivationRequest> ActivateAccount(string activationToken)
+        {
+            DataResult<ActivationRequest> drDefaultResponse = new DataResult<ActivationRequest>() { Success = false, ErrorMessage = "Unable to process your activation request" };
+            DataResult<ActivationRequest> drActivationRequest = database.GetActivationRequest(activationToken);
+
+            if (!drActivationRequest.Success) return drDefaultResponse;
+
+            ActivationRequest activationRequest = drActivationRequest.Data.FirstOrDefault();
+
+            if (activationRequest == null) return drDefaultResponse;
+
+            DataResult<User> drUser = database.GetUser(new User { Id = activationRequest.UserId });
+
+            if (!drUser.Success) return drDefaultResponse;
+
+            User user = drUser.Data.FirstOrDefault();
+
+            if (user == null) return drDefaultResponse;
+
+            user.Activated = true;
+
+            DataResult<User> drUserUpdated = database.UpdateUser(user);
+
+            if (!drUserUpdated.Success) return drDefaultResponse;
+
+            DataResult<ActivationRequest> drDeleteRecoveryRequest = database.DeleteActivationRequest(activationRequest);
+            
+            return drDeleteRecoveryRequest;
         }
 
         /// <summary> Authenticate a user and return a token that can be used to authorize the user </summary>

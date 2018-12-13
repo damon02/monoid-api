@@ -15,11 +15,15 @@ namespace backend_core
 
         public DataResult<ErrorLog> CreateErrorLog(Exception ex)
         {
-            ErrorLog log = new ErrorLog();
-            log.Source = ex.Source;
-            log.Exception = ex.Message;
-            log.StackTrace = ex.StackTrace;
-            log.TimeStamp = DateTime.Now;
+            if (ex == null) return null;
+
+            ErrorLog log = new ErrorLog
+            {
+                Source = ex.Source,
+                Exception = ex.Message,
+                StackTrace = ex.StackTrace,
+                TimeStamp = DateTime.Now
+            };
 
             return database.StoreErrorLog(log);
         }

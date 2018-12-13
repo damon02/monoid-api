@@ -6,6 +6,8 @@
 using backend_core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Bson;
+using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -64,13 +66,24 @@ namespace BackendApi.Controllers
 
             Validator validator = new Validator();
 
-            bool passedEmailValidation = false; model.NotificationRecipients.All(x => validator.IsValidEmail(x));
+            bool passedEmailValidation = model.NotificationRecipients.All(x => validator.IsValidEmail(x));
 
             if (!passedEmailValidation) return CreateResponse("Invalid email address in recipients list");
 
             userCore.SaveSettings(new Settings { EnabledNotifications = model.EnabledNotifications, NotificationRecipients = model.NotificationRecipients });
 
             return CreateResponse();
+        }
+
+        [Route("get-settings")]
+        [HttpGet]
+        public ActionResult GetUserSettings()
+        {
+            if(string.IsNullOrWhiteSpace(Context.UserId)) return CreateResponse("Unable to get token");
+
+            Settings settings = userCore.GetSettings(ObjectId.Parse(Context.UserId));
+
+            return CreateResponse(data: JsonConvert.SerializeObject(new { enabledNotifications = settings.EnabledNotifications, notificationRecipients = settings.NotificationRecipients }));
         }
     }
 }

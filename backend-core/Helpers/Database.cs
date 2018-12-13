@@ -162,7 +162,8 @@ namespace backend_core
             {   
                 GetUserCollection().UpdateOne(Builders<User>.Filter.Eq(x => x.Id, user.Id),
                                               Builders<User>.Update.Set(x => x.Password, user.Password)
-                                                                   .Set(x => x.Token, user.Token));
+                                                                   .Set(x => x.Token, user.Token)
+                                                                   .Set(x => x.Activated, user.Activated));
                 result.Success = true;
             }
             catch
@@ -404,7 +405,94 @@ namespace backend_core
         }
         #endregion
 
+        #region ActivationRequest
+        // Store activationrequest
+        public DataResult<ActivationRequest> StoreRecoveryRequest(ActivationRequest ar)
+        {
+            DataResult<ActivationRequest> result = new DataResult<ActivationRequest>();
+
+            if (!mOnline)
+            {
+                result.Success = false;
+                result.ErrorMessage = DB_ERROR;
+                return result;
+            }
+
+            try
+            {
+                GetActivationRequestCollection().InsertOne(ar);
+                result.Success = true;
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.ErrorMessage = ex.Message;
+            }
+
+            return result;
+        }
+
+        // Delete activationrequest
+        public DataResult<ActivationRequest> DeleteActivationRequest(ActivationRequest ar)
+        {
+            DataResult<ActivationRequest> result = new DataResult<ActivationRequest>();
+
+            if (!mOnline)
+            {
+                result.Success = false;
+                result.ErrorMessage = DB_ERROR;
+                return result;
+            }
+
+            try
+            {
+                GetActivationRequestCollection().DeleteOne(Builders<ActivationRequest>.Filter.Eq(x => x.Token, ar.Token));
+                result.Success = true;
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.ErrorMessage = ex.Message;
+            }
+
+            return result;
+        }
+
+        // RecoveryRequest get
+        public DataResult<ActivationRequest> GetActivationRequest(string token)
+        {
+            DataResult<ActivationRequest> result = new DataResult<ActivationRequest>();
+
+            if (!mOnline)
+            {
+                result.Success = false;
+                result.ErrorMessage = DB_ERROR;
+                return result;
+            }
+
+            List<ActivationRequest> activationRequests = GetActivationRequestCollection().Find(x => x.Token == token).ToList();
+
+            if (activationRequests.Count > 0)
+            {
+                result.Success = true;
+                result.Data = activationRequests;
+            }
+            else
+            {
+                result.Success = false;
+                result.ErrorMessage = "Unable to find the activation request";
+            }
+
+            return result;
+        }
+        #endregion
+
         #region Helpers - Collections
+        private IMongoCollection<ActivationRequest> GetActivationRequestCollection()
+        {
+            return mDatabase.GetCollection<ActivationRequest>("activationrequest");
+        }
+
         private IMongoCollection<Settings> GetSettingsCollection()
         {
             return mDatabase.GetCollection<Settings>("settings");

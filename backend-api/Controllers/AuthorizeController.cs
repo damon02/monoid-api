@@ -65,6 +65,19 @@ namespace BackendApi.Controllers
 
         [AllowAnonymous]
         [HttpPost]
+        [Route("activate-user")]
+        public ActionResult ActivateUser([FromBody] ActivateUserModel model)
+        {
+            if (model == null ||
+                string.IsNullOrWhiteSpace(model.Token)) return CreateResponse("None of the parameters can be null");
+
+            DataResult<ActivationRequest> dr = authorizeCore.ActivateAccount(model.Token);
+
+            return CreateResponse(dr.ErrorMessage, success: dr.Success);
+        }
+
+        [AllowAnonymous]
+        [HttpPost]
         [Route("request-token")]
         /// <summary> Request a token for a user (Login) </summary>
         public ActionResult RequestToken([FromBody]RequestTokenModel model)
@@ -100,7 +113,7 @@ namespace BackendApi.Controllers
         /// <summary> Get an already existing token for an embedded system refresh if requested </summary>
         public ActionResult GetToken(bool refresh)
         {
-            if (string.IsNullOrWhiteSpace(Context.UserId)) return CreateResponse("Unable to get token", success: false);
+            if (string.IsNullOrWhiteSpace(Context.UserId)) return CreateResponse("Unable to get token");
 
             string token = string.Empty;
 

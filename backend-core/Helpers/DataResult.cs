@@ -2,10 +2,7 @@
  *_________© Monoid INC_________*
  *_________DataResult.cs________*
  *______________________________*/
-
-using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace backend_core
 {

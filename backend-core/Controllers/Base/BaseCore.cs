@@ -12,5 +12,6 @@ namespace backend_core
     public partial class BaseCore
     {
         public Database database = Database.Instance;
+        public const string DASHBOARD_URL = "https://dashboard.monoidinc.nl/";
     }
 }

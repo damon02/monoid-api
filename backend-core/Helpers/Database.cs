@@ -263,6 +263,33 @@ namespace backend_core
             return result;
         }
 
+        /// <summary>
+        /// Get packets from storage
+        /// </summary>
+        /// <param name="packets"></param>
+        /// <returns></returns>
+        public DataResult<Packet> GetPackets(ObjectId uId, int intervalSecs)
+        {
+            DataResult<Packet> result = new DataResult<Packet>();
+            DateTime dt = DateTime.Now;
+            DateTime interval = dt.AddSeconds(intervalSecs);
+
+            if (!mOnline)
+            {
+                result.Success = false;
+                result.ErrorMessage = DB_ERROR;
+                return result;
+            }
+
+            List<Packet> foundPackets = GetPacketCollection().Find(x => x.UserId == uId && x.CreationDate < dt && x.CreationDate > interval).ToList();
+            if (foundPackets.Count > 0)
+            {
+                result.Success = true;
+                result.Data = foundPackets;
+            }
+            return result;
+        }
+
         #endregion
 
         #region EndPointLog & ErrorLog

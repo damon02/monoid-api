@@ -59,7 +59,9 @@ namespace backend_core
                 Token = activationToken
             };
 
-            string link = DASHBOARD_URL + "account-activation?activation-token="+ activationToken;
+            database.StoreActivationRequest(activationRequest);
+
+            string link = DASHBOARD_URL + "activation/"+ activationToken;
 
             string body = string.Empty;
             body += "Hi, \n\n";
@@ -116,6 +118,8 @@ namespace backend_core
             if (!dr.Success) return dr;
 
             User authorizedUser = dr.Data.FirstOrDefault();
+
+            if (!authorizedUser.Activated) return new DataResult<User>() { ErrorMessage = "User is not activated" };
 
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
             byte[] secretKey = Encoding.ASCII.GetBytes(appSecret);

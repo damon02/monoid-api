@@ -17,12 +17,23 @@ namespace backend_core
             smtpClient = _smtpClient != null ? _smtpClient : new SmtpClient("127.0.0.1", 25);
         }
 
-        public bool SendEmail(string body, string subject, string recipient)
+        public bool SendEmail(string body, string subject, string[] recipient)
         {
             bool succeeded = false;
 
             MailMessage mm = new MailMessage();
-            mm.To.Add(recipient);
+            if(recipient.Length > 0)
+            {
+                foreach(string r in recipient)
+                {
+                    mm.To.Add(r);
+                }
+            }
+            else
+            {
+                mm.To.Add(recipient[0]);
+            }
+            
             mm.Body = body;
             mm.Subject = subject;
             mm.BodyEncoding = Encoding.UTF8;
@@ -40,6 +51,25 @@ namespace backend_core
             }
 
             return succeeded;
+        }
+
+        public void SendSystemNotification(Settings settings, Risk type)
+        {
+            // If user does not wish to receive notifications stop
+            if (!settings.EnabledNotifications) return;
+
+            string body = string.Empty;
+            string subject = "Monoid Notification: " + type.ToString() + "";
+
+            SendEmail(body, subject, settings.NotificationRecipients);
+        }
+
+        public enum Risk
+        {
+            Low,
+            Medium,
+            High,
+            Critical
         }
     }
 }

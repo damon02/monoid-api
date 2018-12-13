@@ -29,6 +29,7 @@ namespace BackendApi.Controllers
         [AllowAnonymous]
         [HttpPost]
         [Route("register-user")]
+        [Throttle(Name = "register", Seconds = 2)]
         /// <summary> Register a new user </summary>
         public ActionResult Register([FromBody]RegisterUserModel model)
         {

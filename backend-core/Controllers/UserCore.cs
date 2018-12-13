@@ -89,7 +89,7 @@ namespace backend_core
 
             DataResult<RecoveryRequest> drRecoveryRequest = database.StoreRecoveryRequest(rRequest);
 
-            string link = DASHBOARD_URL+"password-recovery/?token=" + recoveryToken;
+            string link = DASHBOARD_URL+"recovery/" + recoveryToken;
 
             string body = string.Empty;
             body += "Hi, \n\n";

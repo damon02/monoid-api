@@ -407,7 +407,7 @@ namespace backend_core
 
         #region ActivationRequest
         // Store activationrequest
-        public DataResult<ActivationRequest> StoreRecoveryRequest(ActivationRequest ar)
+        public DataResult<ActivationRequest> StoreActivationRequest(ActivationRequest ar)
         {
             DataResult<ActivationRequest> result = new DataResult<ActivationRequest>();
 

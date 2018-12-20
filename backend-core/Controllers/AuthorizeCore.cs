@@ -61,7 +61,7 @@ namespace backend_core
 
             database.StoreActivationRequest(activationRequest);
 
-            string link = DASHBOARD_URL + "activation/"+ activationToken;
+            string link = DASHBOARD_URL + "activate/"+ activationToken;
 
             string body = string.Empty;
             body += "Hi, \n\n";
@@ -71,7 +71,7 @@ namespace backend_core
             string subject = "Monoid Dashboard: Account activation";
             string recipient = user.EmailAddress;
 
-            mailer.SendEmail(body, subject, recipient);
+            mailer.SendEmail(body, subject, new[] { recipient });
 
             return dr;
         }

@@ -40,5 +40,18 @@ namespace backend_core
 
             return dr;
         }
+
+        /// <summary> Get packets from database and format them to display risks </summary>
+        public List<PacketFormatted> GetPackets(ObjectId uId, int seconds)
+        {
+            DataResult<Packet> dr = database.GetPackets(uId, seconds);
+
+            if (!dr.Success) return null;
+
+            PacketAnalyser pa = new PacketAnalyser(null);
+            List<PacketFormatted> packetsAnalysed = pa.Analyse(dr.Data);
+
+            return packetsAnalysed;
+        }
     }
 }

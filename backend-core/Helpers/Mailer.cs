@@ -63,13 +63,5 @@ namespace backend_core
 
             SendEmail(body, subject, settings.NotificationRecipients);
         }
-
-        public enum Risk
-        {
-            Low,
-            Medium,
-            High,
-            Critical
-        }
     }
 }

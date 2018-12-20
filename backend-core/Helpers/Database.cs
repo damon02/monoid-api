@@ -233,11 +233,7 @@ namespace backend_core
 
         #region Packets
 
-        /// <summary>
-        /// Save all packets from storage
-        /// </summary>
-        /// <param name="packets"></param>
-        /// <returns></returns>
+        /// <summary> Store packets into database </summary>
         public DataResult<Packet> StorePackets(List<Packet> packets)
         {
             DataResult<Packet> result = new DataResult<Packet>();
@@ -263,16 +259,10 @@ namespace backend_core
             return result;
         }
 
-        /// <summary>
-        /// Get packets from storage
-        /// </summary>
-        /// <param name="packets"></param>
-        /// <returns></returns>
-        public DataResult<Packet> GetPackets(ObjectId uId, int intervalSecs)
+        /// <summary> Get packets based on time parameters </summary>
+        public DataResult<Packet> GetPackets(ObjectId uId, int seconds)
         {
             DataResult<Packet> result = new DataResult<Packet>();
-            DateTime dt = DateTime.Now;
-            DateTime interval = dt.AddSeconds(intervalSecs);
 
             if (!mOnline)
             {
@@ -281,12 +271,22 @@ namespace backend_core
                 return result;
             }
 
-            List<Packet> foundPackets = GetPacketCollection().Find(x => x.UserId == uId && x.CreationDate < dt && x.CreationDate > interval).ToList();
+            DateTime now = DateTime.Now;
+            DateTime range = now.AddSeconds(-seconds);
+
+            List<Packet> foundPackets = GetPacketCollection().Find(x => x.UserId == uId && x.CreationDate < now && x.CreationDate > range).ToList();
+            
             if (foundPackets.Count > 0)
             {
                 result.Success = true;
                 result.Data = foundPackets;
             }
+            else
+            {
+                result.Success = false;
+                result.ErrorMessage = "Unable to retrieve packets";
+            }
+
             return result;
         }
 

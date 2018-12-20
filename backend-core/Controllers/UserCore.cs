@@ -100,7 +100,7 @@ namespace backend_core
             string recipient = user.EmailAddress;
 
             Mailer mailer = new Mailer();
-            succeeded = mailer.SendEmail(body, subject, recipient);
+            succeeded = mailer.SendEmail(body, subject, new[] { recipient });
 
             return defaultResponse;
         }

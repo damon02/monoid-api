@@ -1,4 +1,9 @@
-﻿using MongoDB.Bson;
+﻿/*______________________________*
+ *_________© Monoid INC_________*
+ *_____ActivationRequest.cs_____*
+ *______________________________*/
+
+using MongoDB.Bson;
 using System;
 using System.Collections.Generic;
 using System.Text;

@@ -27,5 +27,18 @@ namespace backend_core
 
             return database.StoreErrorLog(log);
         }
+
+        public void CreateEndPointLog(EndPointContext context, string body, EndPointType type)
+        {
+            if (context == null) return;
+
+            EndPointLog log = new EndPointLog();
+            log.ClientIp = context.ClientIP;
+            log.Body = body;
+            log.TimeStamp = DateTime.Now;
+            log.EndPointType = type;
+
+            database.StoreEndPointLog(log);
+        }
     }
 }

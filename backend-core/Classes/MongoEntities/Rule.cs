@@ -1,17 +1,19 @@
 ﻿/*______________________________*
  *_________© Monoid INC_________*
- *__________BaseCore.cs_________*
+ *____________Rule.cs___________*
  *______________________________*/
 
+using MongoDB.Bson;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace backend_core
 {
-    public partial class BaseCore
+    public class Rule
     {
-        public Database database = Database.Instance;
-        public const string DASHBOARD_URL = "https://dashboard.monoidinc.nl/#/";
+        public ObjectId Id { get; set; }
+        public Protocol Protocol { get; set; }
+
     }
 }

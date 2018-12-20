@@ -23,7 +23,7 @@ namespace backend_core
     /// </summary>
     public enum EndPointType
     {
-        A,
+        StorePackets,
         B,
         C
     }

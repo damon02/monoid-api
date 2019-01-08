@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using MongoDB.Bson;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -20,7 +21,7 @@ namespace BackendApi.Controllers
     public class DataController : IApiController
     {
         private DataCore dataCore = DataCore.Instance;
-        private static MemoryCache Cache { get; set; } = new MemoryCache(new MemoryCacheOptions());
+        private static MemoryCache Cache = new MemoryCache(new MemoryCacheOptions());
 
         [HttpPost]
         [Route("store-packets")]
@@ -56,7 +57,52 @@ namespace BackendApi.Controllers
             Detector detector = new Detector(Cache);
             detector.DetectSynFlood(pFormatList, Context.UserId);
 
-            return CreateResponse("WIP");
+            return CreateResponse(data: JsonConvert.SerializeObject(pFormatList), success: true);
+        }
+
+        [HttpPost]
+        [Route("store-rules")]
+        public ActionResult StoreRules([FromBody]StoreRulesModel model)
+        {
+            if (Context == null || string.IsNullOrWhiteSpace(Context.UserId)) return CreateResponse("Unauthorized");
+            if (model == null) return CreateResponse("Invalid model");
+
+            List<SingleRuleModel> jRules = model.Rules;
+            List<Rule> rules = new List<Rule>();
+            ObjectId userId = ObjectId.Parse(Context.UserId);
+
+            // Merge userid in rule object
+            foreach(SingleRuleModel sRm in jRules)
+            {
+                Rule rule = new Rule
+                {
+                    DestPort = sRm.DestPort,
+                    DestIp = sRm.DestIp,
+                    SourceIp = sRm.SourceIp,
+                    SourcePort = sRm.SourcePort,
+                    Message = sRm.Message,
+                    Protocol = sRm.Protocol,
+                    Risk = sRm.Risk,
+                    UserId = userId
+                };
+
+                rules.Add(rule);
+            }
+
+            bool success = dataCore.StoreRules(rules, userId);
+
+            return CreateResponse(success: success);
+        }
+
+        [HttpGet]
+        [Route("get-rules")]
+        public ActionResult GetRules()
+        {
+            if (string.IsNullOrWhiteSpace(Context.UserId)) return CreateResponse("Unauthorized");
+
+            List<Rule> rules = dataCore.GetRules(ObjectId.Parse(Context.UserId));
+            
+            return CreateResponse(data: JsonConvert.SerializeObject(rules), success: true);
         }
     }
 }

@@ -70,9 +70,9 @@ namespace BackendApi.Controllers
 
             if (!passedEmailValidation) return CreateResponse("Invalid email address in recipients list");
 
-            userCore.SaveSettings(new Settings { EnabledNotifications = model.EnabledNotifications, NotificationRecipients = model.NotificationRecipients });
+            bool saved = userCore.SaveSettings(new Settings { EnabledNotifications = model.EnabledNotifications, NotificationRecipients = model.NotificationRecipients });
 
-            return CreateResponse();
+            return CreateResponse(success: saved);
         }
 
         [Route("get-settings")]
@@ -83,7 +83,7 @@ namespace BackendApi.Controllers
 
             Settings settings = userCore.GetSettings(ObjectId.Parse(Context.UserId));
 
-            return CreateResponse(data: JsonConvert.SerializeObject(new { enabledNotifications = settings.EnabledNotifications, notificationRecipients = settings.NotificationRecipients }));
+            return CreateResponse(data: JsonConvert.SerializeObject(new { enabledNotifications = settings.EnabledNotifications, notificationRecipients = settings.NotificationRecipients }), success: true);
         }
     }
 }

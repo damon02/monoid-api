@@ -35,14 +35,15 @@ namespace backend_core
 
                 MainProtocol mainProtocol = MainProtocol.Undefined;
                 Protocol protocol = Protocol.Undefined;
-                string ipSource = null;
-                string ipDest = null;
+                string sourceIp = null;
+                string destIp = null;
                 string dnsRequest = null;
-                int portSource = 0;
-                int portDest = 0;
+                int sourcePort = 0;
+                int destPort = 0;
                 int packetSize = 0;
                 bool hasSynFlag = false;
                 bool hasAckFlag = false;
+                bool hasRstFlag = false;
 
                 BsonDocument packetSource = cPacket["_source"].AsBsonDocument;
                 BsonDocument packetLayers = packetSource["layers"].AsBsonDocument;
@@ -59,10 +60,10 @@ namespace backend_core
                 {
                     BsonDocument packetIp = packetLayers["ip"].AsBsonDocument;
                     mainProtocol = (MainProtocol)Convert.ToInt32(packetIp["ip_proto"].AsString);
-                    ipSource = packetIp["ip_src"].AsString;
-                    if(packetIp.Contains("ip_dest"))
+                    sourceIp = packetIp["ip_src"].AsString;
+                    if(packetIp.Contains("ip_dst"))
                     {
-                        ipDest = packetIp["ip_dest"].AsString;
+                        destIp = packetIp["ip_dst"].AsString;
                     }
                 }
 
@@ -70,19 +71,20 @@ namespace backend_core
                 if (packetLayers.Contains("tcp"))
                 {
                     BsonDocument packetTcp = packetLayers["tcp"].AsBsonDocument;
-                    portSource = Convert.ToInt32(packetTcp["tcp_srcport"].AsString);
-                    portDest = Convert.ToInt32(packetTcp["tcp_dstport"].AsString);
+                    sourcePort = Convert.ToInt32(packetTcp["tcp_srcport"].AsString);
+                    destPort = Convert.ToInt32(packetTcp["tcp_dstport"].AsString);
 
                     BsonDocument flagTree = packetTcp["tcp_flags_tree"].AsBsonDocument;
                     hasSynFlag = flagTree["tcp_flags_syn"].AsString == "1" ? true : false;
                     hasAckFlag = flagTree["tcp_flags_ack"].AsString == "1" ? true : false;
+                    hasRstFlag = flagTree["tcp_flags_reset"].AsString == "1" ? true : false;
                 }
                 // https://www.wireshark.org/docs/dfref/u/udp.html
                 else if (packetLayers.Contains("udp"))
                 {
                     BsonDocument packetUdp = packetLayers["udp"].AsBsonDocument;
-                    portSource = Convert.ToInt32(packetUdp["udp_srcport"].AsString);
-                    portDest = Convert.ToInt32(packetUdp["udp_dstport"].AsString);
+                    sourcePort = Convert.ToInt32(packetUdp["udp_srcport"].AsString);
+                    destPort = Convert.ToInt32(packetUdp["udp_dstport"].AsString);
                 }
 
                 #region Protocols
@@ -178,17 +180,77 @@ namespace backend_core
                 BsonDocument packetTcpSegments = packetLayers["tcp_segments"].AsBsonDocument;
                 */
 
+                // Apply rules
+                Risk risk = Risk.Information;
+                Rule appliedRule = null;
+
+                // Determine which rule is most suitable for current packet
+                foreach(Rule rule in Rules)
+                {
+                    if(rule.Protocol == mainProtocol)
+                    {
+                        if (rule.DestIp.Contains(destIp) && rule.SourceIp.Contains(sourceIp))
+                        {
+                            if (rule.DestPort.Contains(destPort) && rule.SourcePort.Contains(sourcePort))
+                            {
+                                appliedRule = rule;
+                            }
+                        }
+                    }
+                }
+
+                // Execute most suitable rule
+                if(appliedRule != null)
+                {
+                    string message = null;
+                    if (appliedRule.Message.Contains("*|") && appliedRule.Message.Contains("|*"))
+                    {
+                        // Apply string formats
+                        message = appliedRule.Message.Replace("*|DEST_IP|*", destIp)
+                            .Replace("*|SOURCE_IP|*", sourceIp)
+                            .Replace("*|DEST_PORT|*", Convert.ToString(destPort))
+                            .Replace("*|SOURCE_PORT|*", Convert.ToString(sourcePort));
+                    }
+                    else
+                    {
+                        message = appliedRule.Message;
+                    }
+
+                    if (appliedRule.Notify)
+                    {
+                        // Send email
+                        
+
+                        if (appliedRule.Log)
+                        {
+                            // also write log
+
+                        }
+                    }
+                    else if (appliedRule.Log)
+                    {
+                        // Write log
+
+                    }
+
+                    risk = appliedRule.Risk;
+                }
+
                 PacketFormatted pFormatted = new PacketFormatted
                 {
-                    DestinationIp = ipDest,
-                    DestinationPort = portDest,
+                    DestinationIp = destIp,
+                    DestinationPort = destPort,
                     PacketSize = packetSize,
                     Protocol = protocol,
                     MainProtocol = mainProtocol,
-                    SourceIp = ipSource,
-                    SourcePort = portSource,
+                    SourceIp = sourceIp,
+                    SourcePort = sourcePort,
                     HasAckFlag = hasAckFlag,
-                    HasSynFlag = hasSynFlag
+                    HasSynFlag = hasSynFlag,
+                    HasRstFlag = hasRstFlag,
+                    DnsRequest = dnsRequest,
+                    Risk = risk,
+                    RuleApplied = appliedRule != null
                 };
 
                 pFormatList.Add(pFormatted);
@@ -222,10 +284,10 @@ namespace backend_core
 
     public enum Risk
     {
-        Information,
-        Low,
-        Medium,
-        High,
-        Critical
+        Information = 0,
+        Low = 1,
+        Medium = 2,
+        High = 3,
+        Critical = 4
     }
 }

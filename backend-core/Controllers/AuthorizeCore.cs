@@ -48,6 +48,8 @@ namespace backend_core
 
             DataResult<User> dr = database.CreateUser(user);
 
+            if (!dr.Success) return dr;
+
             // Todo => send an email to the user before the account is activated
             Mailer mailer = new Mailer();
 

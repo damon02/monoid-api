@@ -48,10 +48,34 @@ namespace backend_core
 
             if (!dr.Success) return null;
 
-            PacketAnalyser pa = new PacketAnalyser(null);
+            List<Rule> rules = GetRules(uId);
+
+            PacketAnalyser pa = new PacketAnalyser(rules);
             List<PacketFormatted> packetsAnalysed = pa.Analyse(dr.Data);
 
             return packetsAnalysed;
+        }
+
+        /// <summary> Store rules </summary>
+        public bool StoreRules(List<Rule> rules, ObjectId uId)
+        {
+            if (rules == null || rules.Count < 1 || uId == null) return false;
+
+            DataResult<Rule> dr = database.StoreRules(rules, uId);
+
+            return dr.Success;
+        }
+
+        /// <summary> Get rules </summary>
+        public List<Rule> GetRules(ObjectId uId)
+        {
+            if (uId == null) return null;
+
+            DataResult<Rule> dr = database.GetRules(uId);
+
+            if (!dr.Success) return null;
+
+            return dr.Data;
         }
     }
 }

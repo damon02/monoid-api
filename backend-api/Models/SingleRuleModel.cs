@@ -1,22 +1,13 @@
 ﻿/*______________________________*
  *_________© Monoid INC_________*
- *____________Rule.cs___________*
+ *______SingleRuleModel.cs______*
  *______________________________*/
+using backend_core;
 
-using MongoDB.Bson;
-using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace backend_core
+namespace BackendApi
 {
-    public class Rule
+    public class SingleRuleModel
     {
-        [JsonIgnore]
-        public ObjectId Id { get; set; }
-        [JsonIgnore]
-        public ObjectId UserId { get; set; }
         public MainProtocol Protocol { get; set; }
         public string[] DestIp { get; set; }
         public string[] SourceIp { get; set; }

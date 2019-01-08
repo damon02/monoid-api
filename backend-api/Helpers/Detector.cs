@@ -25,6 +25,8 @@ namespace BackendApi
         /// <summary> Detect a synflood based on the Syn and Ack flags in the data </summary>
         public void DetectSynFlood(List<PacketFormatted> pFormatList, string userId)
         {
+            if (pFormatList == null || pFormatList.Count < 1) return;
+
             // Synflood
             string key = userId + "-synflood-detection";
 
@@ -32,23 +34,19 @@ namespace BackendApi
             int synAckCount = pFormatList.Count(x => x.HasAckFlag && x.HasSynFlag);
             int ackCount = pFormatList.Count(x => x.HasAckFlag && !x.HasSynFlag);
 
-            int packetCount = pFormatList.Count;
-
-            List<Tuple<int[], DateTime>> synFloodData = new List<Tuple<int[], DateTime>>();
+            List<Tuple<int[], DateTime>> synFloodData;
 
             MemoryCacheEntryOptions cacheEntryOptions = new MemoryCacheEntryOptions()
                                     .SetAbsoluteExpiration(new DateTimeOffset(DateTime.Now.AddMinutes(1)));
 
             if (Cache.Get(key) == null)
             {
-                synFloodData.Add(new Tuple<int[], DateTime>(new int[] { synCount, synAckCount, ackCount }, cTime));
-
+                synFloodData = new List<Tuple<int[], DateTime>>() { new Tuple<int[], DateTime>(new int[] { synCount, synAckCount, ackCount }, cTime) };
                 Cache.Set(key, synFloodData, cacheEntryOptions);
             }
             else
             {
                 synFloodData = (List<Tuple<int[], DateTime>>)Cache.Get(key);
-
                 synFloodData.Add(new Tuple<int[], DateTime>(new int[] { synCount, synAckCount, ackCount }, cTime));
 
                 Cache.Set(key, synFloodData, cacheEntryOptions);

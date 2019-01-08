@@ -514,7 +514,99 @@ namespace backend_core
         }
         #endregion
 
+        #region Rules
+        // Store rules
+        public DataResult<Rule> StoreRules(List<Rule> rules, ObjectId userId)
+        {
+            DataResult<Rule> result = new DataResult<Rule>();
+
+            if (!mOnline)
+            {
+                result.Success = false;
+                result.ErrorMessage = DB_ERROR;
+                return result;
+            }
+
+            // Delete all rules from this user and store the new ones
+            DeleteRules(userId);
+
+            try
+            {
+                GetRuleCollection().InsertMany(rules);
+                result.Success = true;
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.ErrorMessage = ex.Message;
+            }
+
+            return result;
+        }
+
+        // Get rules
+        public DataResult<Rule> GetRules(ObjectId userId)
+        {
+            DataResult<Rule> result = new DataResult<Rule>();
+
+            if (!mOnline)
+            {
+                result.Success = false;
+                result.ErrorMessage = DB_ERROR;
+                return result;
+            }
+
+            List<Rule> rules = new List<Rule>();
+
+            rules = GetRuleCollection().Find(x => x.UserId == userId).ToList();
+
+            if (rules.Count > 0)
+            {
+                result.Success = true;
+                result.Data = rules;
+            }
+            else
+            {
+                result.Success = false;
+                result.ErrorMessage = "Unable to find the requested rules";
+            }
+
+            return result;
+        }
+
+        // Delete rules
+        public DataResult<Rule> DeleteRules(ObjectId userId)
+        {
+            DataResult<Rule> result = new DataResult<Rule>();
+
+            if (!mOnline)
+            {
+                result.Success = false;
+                result.ErrorMessage = DB_ERROR;
+                return result;
+            }
+            
+            try
+            {
+                GetRuleCollection().DeleteMany(Builders<Rule>.Filter.Eq(x => x.UserId, userId));
+                result.Success = true;
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.ErrorMessage = ex.Message;
+            }
+
+            return result;
+        }
+        #endregion
+
         #region Helpers - Collections
+        private IMongoCollection<Rule> GetRuleCollection()
+        {
+            return mDatabase.GetCollection<Rule>("rule");
+        }
+
         private IMongoCollection<ActivationRequest> GetActivationRequestCollection()
         {
             return mDatabase.GetCollection<ActivationRequest>("activationrequest");

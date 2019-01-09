@@ -80,6 +80,7 @@ namespace BackendApi.Controllers
         [AllowAnonymous]
         [HttpPost]
         [Route("request-token")]
+        [Throttle(Name = "request-token", Seconds = 2)]
         /// <summary> Request a token for a user (Login) </summary>
         public ActionResult RequestToken([FromBody]RequestTokenModel model)
         {

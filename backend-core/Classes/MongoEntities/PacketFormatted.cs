@@ -24,6 +24,8 @@ namespace backend_core
         public MainProtocol MainProtocol { get; set; }
         public int SourcePort { get; set; }
         public int DestinationPort { get; set; }
+        public string DestinationMacAddress { get; set; }
+        public string SourceMacAddress { get; set; }
         public int PacketSize { get; set; }
         public bool HasSynFlag { get; set; }
         public bool HasAckFlag { get; set; }

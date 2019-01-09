@@ -14,6 +14,7 @@ namespace backend_core
     public class PacketAnalyser
     {
         private List<Rule> Rules { get; set; }
+        private Logger Logger = new Logger();
 
         public PacketAnalyser(List<Rule> _rules)
         {
@@ -28,232 +29,267 @@ namespace backend_core
 
             foreach(Packet packet in packets)
             {
-                BsonDocument cPacket = packet.PacketData;
-
-                string packetIndex = cPacket["_index"].AsString;
-                string packetType = cPacket["_type"].AsString;
-
-                MainProtocol mainProtocol = MainProtocol.Undefined;
-                Protocol protocol = Protocol.Undefined;
-                string sourceIp = null;
-                string destIp = null;
-                string dnsRequest = null;
-                int sourcePort = 0;
-                int destPort = 0;
-                int packetSize = 0;
-                bool hasSynFlag = false;
-                bool hasAckFlag = false;
-                bool hasRstFlag = false;
-
-                BsonDocument packetSource = cPacket["_source"].AsBsonDocument;
-                BsonDocument packetLayers = packetSource["layers"].AsBsonDocument;
-
-                // https://www.wireshark.org/docs/dfref/f/frame.html
-                if (packetLayers.Contains("frame"))
+                try
                 {
-                    BsonDocument packetFrame = packetLayers["frame"].AsBsonDocument;
-                    packetSize = Convert.ToInt32(packetFrame["frame_len"].AsString);
-                }
+                    BsonDocument cPacket = packet.PacketData;
 
-                // https://www.wireshark.org/docs/dfref/i/ip.html
-                if (packetLayers.Contains("ip"))
-                {
-                    BsonDocument packetIp = packetLayers["ip"].AsBsonDocument;
-                    mainProtocol = (MainProtocol)Convert.ToInt32(packetIp["ip_proto"].AsString);
-                    sourceIp = packetIp["ip_src"].AsString;
-                    if(packetIp.Contains("ip_dst"))
+                    string packetIndex = cPacket["_index"].AsString;
+                    string packetType = cPacket["_type"].AsString;
+
+                    MainProtocol mainProtocol = MainProtocol.Undefined;
+                    Protocol protocol = Protocol.Undefined;
+                    string sourceIp = null;
+                    string destIp = null;
+                    string dnsRequest = null;
+                    string sourceMac = null;
+                    string destMac = null;
+                    int sourcePort = 0;
+                    int destPort = 0;
+                    int packetSize = 0;
+                    bool hasSynFlag = false;
+                    bool hasAckFlag = false;
+                    bool hasRstFlag = false;
+
+                    BsonDocument packetSource = cPacket["_source"].AsBsonDocument;
+                    BsonDocument packetLayers = packetSource["layers"].AsBsonDocument;
+
+                    // https://www.wireshark.org/docs/dfref/f/frame.html
+                    if (packetLayers.Contains("frame"))
                     {
-                        destIp = packetIp["ip_dst"].AsString;
+                        BsonDocument packetFrame = packetLayers["frame"].AsBsonDocument;
+                        packetSize = Convert.ToInt32(packetFrame["frame_len"].AsString);
                     }
-                }
 
-                // https://www.wireshark.org/docs/dfref/t/tcp.html
-                if (packetLayers.Contains("tcp"))
-                {
-                    BsonDocument packetTcp = packetLayers["tcp"].AsBsonDocument;
-                    sourcePort = Convert.ToInt32(packetTcp["tcp_srcport"].AsString);
-                    destPort = Convert.ToInt32(packetTcp["tcp_dstport"].AsString);
-
-                    BsonDocument flagTree = packetTcp["tcp_flags_tree"].AsBsonDocument;
-                    hasSynFlag = flagTree["tcp_flags_syn"].AsString == "1" ? true : false;
-                    hasAckFlag = flagTree["tcp_flags_ack"].AsString == "1" ? true : false;
-                    hasRstFlag = flagTree["tcp_flags_reset"].AsString == "1" ? true : false;
-                }
-                // https://www.wireshark.org/docs/dfref/u/udp.html
-                else if (packetLayers.Contains("udp"))
-                {
-                    BsonDocument packetUdp = packetLayers["udp"].AsBsonDocument;
-                    sourcePort = Convert.ToInt32(packetUdp["udp_srcport"].AsString);
-                    destPort = Convert.ToInt32(packetUdp["udp_dstport"].AsString);
-                }
-
-                #region Protocols
-
-                // https://www.wireshark.org/docs/dfref/s/ssh.html
-                if (packetLayers.Contains("ssh"))
-                {
-                    // SSH packet data is encrypted and therefore not accessible
-                    protocol = Protocol.SSH;
-                }
-
-                // https://www.wireshark.org/docs/dfref/d/dns.html
-                else if (packetLayers.Contains("dns"))
-                {
-                    BsonDocument packetDns = packetLayers["dns"].AsBsonDocument;
-                    if(packetDns.Contains("Queries"))
+                    // https://www.wireshark.org/docs/dfref/i/ip.html
+                    if (packetLayers.Contains("ip"))
                     {
-                        string json = packetDns["Queries"].AsBsonDocument.ToString();
-                        JToken queries = JToken.Parse(json);
-                        if(queries is JObject)
+                        BsonDocument packetIp = packetLayers["ip"].AsBsonDocument;
+                        mainProtocol = (MainProtocol)Convert.ToInt32(packetIp["ip_proto"].AsString);
+                        sourceIp = packetIp["ip_src"].AsString;
+                        if (packetIp.Contains("ip_dst"))
                         {
-                            JObject dnsQueries = queries as JObject;
-                            foreach(JProperty prop in dnsQueries.Properties())
+                            destIp = packetIp["ip_dst"].AsString;
+                        }
+                    }
+
+                    if (packetLayers.Contains("eth"))
+                    {
+                        BsonDocument packetEth = packetLayers["eth"].AsBsonDocument;
+                        BsonDocument ethSource = packetEth["eth_src_tree"].AsBsonDocument;
+                        sourceMac = ethSource["eth_addr"].AsString;
+                        BsonDocument ethDest = packetEth["eth_dst_tree"].AsBsonDocument;
+                        destMac = ethDest["eth_addr"].AsString;
+                    }
+
+                    // https://www.wireshark.org/docs/dfref/t/tcp.html
+                    if (packetLayers.Contains("tcp"))
+                    {
+                        BsonDocument packetTcp = packetLayers["tcp"].AsBsonDocument;
+                        sourcePort = Convert.ToInt32(packetTcp["tcp_srcport"].AsString);
+                        destPort = Convert.ToInt32(packetTcp["tcp_dstport"].AsString);
+
+                        BsonDocument flagTree = packetTcp["tcp_flags_tree"].AsBsonDocument;
+                        hasSynFlag = flagTree["tcp_flags_syn"].AsString == "1" ? true : false;
+                        hasAckFlag = flagTree["tcp_flags_ack"].AsString == "1" ? true : false;
+                        hasRstFlag = flagTree["tcp_flags_reset"].AsString == "1" ? true : false;
+                    }
+                    // https://www.wireshark.org/docs/dfref/u/udp.html
+                    else if (packetLayers.Contains("udp"))
+                    {
+                        BsonDocument packetUdp = packetLayers["udp"].AsBsonDocument;
+                        sourcePort = Convert.ToInt32(packetUdp["udp_srcport"].AsString);
+                        destPort = Convert.ToInt32(packetUdp["udp_dstport"].AsString);
+                    }
+
+                    #region Protocols
+
+                    // https://www.wireshark.org/docs/dfref/s/ssh.html
+                    if (packetLayers.Contains("ssh"))
+                    {
+                        // SSH packet data is encrypted and therefore not accessible
+                        protocol = Protocol.SSH;
+                    }
+
+                    // https://www.wireshark.org/docs/dfref/d/dns.html
+                    else if (packetLayers.Contains("dns"))
+                    {
+                        BsonDocument packetDns = packetLayers["dns"].AsBsonDocument;
+                        if (packetDns.Contains("Queries"))
+                        {
+                            string json = packetDns["Queries"].AsBsonDocument.ToString();
+                            JToken queries = JToken.Parse(json);
+                            if (queries is JObject)
                             {
-                                JObject dnsRecord = prop.Value is JObject ? (JObject)prop.Value : null;
-
-                                if (dnsRecord == null) continue;
-
-                                if(dnsRecord.ContainsKey("dns_qry_name"))
+                                JObject dnsQueries = queries as JObject;
+                                foreach (JProperty prop in dnsQueries.Properties())
                                 {
-                                    dnsRequest = Convert.ToString(dnsRecord["dns_qry_name"]);
+                                    JObject dnsRecord = prop.Value is JObject ? (JObject)prop.Value : null;
+
+                                    if (dnsRecord == null) continue;
+
+                                    if (dnsRecord.ContainsKey("dns_qry_name"))
+                                    {
+                                        dnsRequest = Convert.ToString(dnsRecord["dns_qry_name"]);
+                                    }
+                                }
+                            }
+                        }
+
+                        protocol = Protocol.DNS;
+                    }
+
+                    // https://www.wireshark.org/docs/dfref/t/telnet.html
+                    else if (packetLayers.Contains("telnet"))
+                    {
+                        protocol = Protocol.Telnet;
+                    }
+
+                    // https://www.wireshark.org/docs/dfref/f/finger.html
+                    else if (packetLayers.Contains("finger"))
+                    {
+                        protocol = Protocol.Finger;
+                    }
+
+                    // https://www.wireshark.org/docs/dfref/t/tftp.html
+                    else if (packetLayers.Contains("tftp"))
+                    {
+                        protocol = Protocol.TFTP;
+                    }
+
+                    // https://www.wireshark.org/docs/dfref/s/snmp.html
+                    else if (packetLayers.Contains("snmp"))
+                    {
+                        protocol = Protocol.SNMP;
+                    }
+
+                    // https://www.wireshark.org/docs/dfref/f/ftp.html
+                    else if (packetLayers.Contains("ftp"))
+                    {
+                        protocol = Protocol.FTP;
+                    }
+
+                    // https://www.wireshark.org/docs/dfref/s/smb.html
+                    else if (packetLayers.Contains("smb"))
+                    {
+                        protocol = Protocol.SMB;
+                    }
+
+                    // https://www.wireshark.org/docs/dfref/a/arp.html
+                    else if (packetLayers.Contains("arp"))
+                    {
+                        protocol = Protocol.ARP;
+                    }
+
+                    // https://www.wireshark.org/docs/dfref/l/llc.html
+                    else if (packetLayers.Contains("llc"))
+                    {
+                        protocol = Protocol.LLC;
+                    }
+
+                    else if (packetLayers.Contains("stp"))
+                    {
+                        protocol = Protocol.STP;
+                    }
+
+
+                    // 
+
+                    #endregion
+
+                    /*
+                    BsonDocument packetEth = packetLayers["eth"].AsBsonDocument;
+                    BsonDocument packetIcmp = packetLayers["icmp"].AsBsonDocument;
+                    BsonDocument packetLlc = packetLayers["llc"].AsBsonDocument;
+                    BsonDocument packetStp = packetLayers["stp"].AsBsonDocument;
+                    BsonDocument packetArp = packetLayers["arp"].AsBsonDocument;
+                    BsonDocument packetSsl = packetLayers["ssl"].AsBsonDocument;
+                    BsonDocument packetTcpSegments = packetLayers["tcp_segments"].AsBsonDocument;
+                    */
+
+                    // Apply rules
+                    Risk risk = Risk.Information;
+                    Rule appliedRule = null;
+
+                    // Determine which rule is most suitable for current packet
+                    if(Rules != null && Rules.Count > 0)
+                    {
+                        foreach (Rule rule in Rules)
+                        {
+                            if (rule.Protocol == mainProtocol)
+                            {
+                                if (rule.DestIp.Contains(destIp) && rule.SourceIp.Contains(sourceIp))
+                                {
+                                    if (rule.DestPort.Contains(destPort) && rule.SourcePort.Contains(sourcePort))
+                                    {
+                                        appliedRule = rule;
+                                    }
                                 }
                             }
                         }
                     }
 
-                    protocol = Protocol.DNS;
-                }
-
-                // https://www.wireshark.org/docs/dfref/t/telnet.html
-                else if (packetLayers.Contains("telnet"))
-                {
-                    protocol = Protocol.Telnet;
-                }
-
-                // https://www.wireshark.org/docs/dfref/f/finger.html
-                else if (packetLayers.Contains("finger"))
-                {
-                    protocol = Protocol.Finger;
-                }
-
-                // https://www.wireshark.org/docs/dfref/t/tftp.html
-                else if (packetLayers.Contains("tftp"))
-                {
-                    protocol = Protocol.TFTP;
-                }
-
-                // https://www.wireshark.org/docs/dfref/s/snmp.html
-                else if (packetLayers.Contains("snmp"))
-                {
-                    protocol = Protocol.SNMP;
-                }
-
-                // https://www.wireshark.org/docs/dfref/f/ftp.html
-                else if (packetLayers.Contains("ftp"))
-                {
-                    protocol = Protocol.FTP;
-                }
-
-                // https://www.wireshark.org/docs/dfref/s/smb.html
-                else if (packetLayers.Contains("smb"))
-                {
-                    protocol = Protocol.SMB;
-                }
-
-                // https://www.wireshark.org/docs/dfref/a/arp.html
-                else if (packetLayers.Contains("arp"))
-                {
-                    protocol = Protocol.ARP;
-                }
-
-                // 
-
-                #endregion
-
-                /*
-                 * BsonDocument packetEth = packetLayers["eth"].AsBsonDocument;
-                BsonDocument packetIcmp = packetLayers["icmp"].AsBsonDocument;
-                BsonDocument packetLlc = packetLayers["llc"].AsBsonDocument;
-                BsonDocument packetStp = packetLayers["stp"].AsBsonDocument;
-                BsonDocument packetArp = packetLayers["arp"].AsBsonDocument;
-                BsonDocument packetSsl = packetLayers["ssl"].AsBsonDocument;
-                BsonDocument packetTcpSegments = packetLayers["tcp_segments"].AsBsonDocument;
-                */
-
-                // Apply rules
-                Risk risk = Risk.Information;
-                Rule appliedRule = null;
-
-                // Determine which rule is most suitable for current packet
-                foreach(Rule rule in Rules)
-                {
-                    if(rule.Protocol == mainProtocol)
+                    // Execute most suitable rule
+                    if (appliedRule != null)
                     {
-                        if (rule.DestIp.Contains(destIp) && rule.SourceIp.Contains(sourceIp))
+                        string message = null;
+                        if (appliedRule.Message.Contains("*|") && appliedRule.Message.Contains("|*"))
                         {
-                            if (rule.DestPort.Contains(destPort) && rule.SourcePort.Contains(sourcePort))
+                            // Apply string formats
+                            message = appliedRule.Message.Replace("*|DEST_IP|*", destIp)
+                                .Replace("*|SOURCE_IP|*", sourceIp)
+                                .Replace("*|DEST_PORT|*", Convert.ToString(destPort))
+                                .Replace("*|SOURCE_PORT|*", Convert.ToString(sourcePort));
+                        }
+                        else
+                        {
+                            message = appliedRule.Message;
+                        }
+
+                        if (appliedRule.Notify)
+                        {
+                            // Send email
+
+
+                            if (appliedRule.Log)
                             {
-                                appliedRule = rule;
+                                // also write log
+
                             }
                         }
-                    }
-                }
-
-                // Execute most suitable rule
-                if(appliedRule != null)
-                {
-                    string message = null;
-                    if (appliedRule.Message.Contains("*|") && appliedRule.Message.Contains("|*"))
-                    {
-                        // Apply string formats
-                        message = appliedRule.Message.Replace("*|DEST_IP|*", destIp)
-                            .Replace("*|SOURCE_IP|*", sourceIp)
-                            .Replace("*|DEST_PORT|*", Convert.ToString(destPort))
-                            .Replace("*|SOURCE_PORT|*", Convert.ToString(sourcePort));
-                    }
-                    else
-                    {
-                        message = appliedRule.Message;
-                    }
-
-                    if (appliedRule.Notify)
-                    {
-                        // Send email
-                        
-
-                        if (appliedRule.Log)
+                        else if (appliedRule.Log)
                         {
-                            // also write log
+                            // Write log
 
                         }
+
+                        risk = appliedRule.Risk;
                     }
-                    else if (appliedRule.Log)
+
+                    PacketFormatted pFormatted = new PacketFormatted
                     {
-                        // Write log
+                        DestinationIp = destIp,
+                        DestinationPort = destPort,
+                        DestinationMacAddress = destMac,
+                        PacketSize = packetSize,
+                        Protocol = protocol,
+                        MainProtocol = mainProtocol,
+                        SourceIp = sourceIp,
+                        SourcePort = sourcePort,
+                        SourceMacAddress = sourceMac,
+                        HasAckFlag = hasAckFlag,
+                        HasSynFlag = hasSynFlag,
+                        HasRstFlag = hasRstFlag,
+                        DnsRequest = dnsRequest,
+                        Risk = risk,
+                        RuleApplied = appliedRule != null
+                    };
 
-                    }
-
-                    risk = appliedRule.Risk;
+                    pFormatList.Add(pFormatted);
                 }
-
-                PacketFormatted pFormatted = new PacketFormatted
+                catch(Exception ex)
                 {
-                    DestinationIp = destIp,
-                    DestinationPort = destPort,
-                    PacketSize = packetSize,
-                    Protocol = protocol,
-                    MainProtocol = mainProtocol,
-                    SourceIp = sourceIp,
-                    SourcePort = sourcePort,
-                    HasAckFlag = hasAckFlag,
-                    HasSynFlag = hasSynFlag,
-                    HasRstFlag = hasRstFlag,
-                    DnsRequest = dnsRequest,
-                    Risk = risk,
-                    RuleApplied = appliedRule != null
-                };
-
-                pFormatList.Add(pFormatted);
+                    Logger.CreateErrorLog(ex);
+                }
             }
 
             return pFormatList;
@@ -279,7 +315,9 @@ namespace backend_core
         FTP = 6,
         SMB = 7,
         ARP = 8,
-        DNS = 9
+        DNS = 9,
+        LLC = 10,
+        STP = 11
     }
 
     public enum Risk

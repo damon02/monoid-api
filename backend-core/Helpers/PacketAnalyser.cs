@@ -15,10 +15,13 @@ namespace backend_core
     {
         private List<Rule> Rules { get; set; }
         private Logger Logger = new Logger();
+        private Mailer Mailer = new Mailer();
+        private Settings Settings { get; set; }
 
-        public PacketAnalyser(List<Rule> _rules)
+        public PacketAnalyser(List<Rule> _rules, Settings _settings)
         {
             this.Rules = _rules;
+            this.Settings = _settings;
         }
 
         public List<PacketFormatted> Analyse(List<Packet> packets)
@@ -248,7 +251,7 @@ namespace backend_core
                         if (appliedRule.Notify)
                         {
                             // Send email
-
+                            Mailer.SendSystemNotification(Settings, message, appliedRule.Risk);
 
                             if (appliedRule.Log)
                             {

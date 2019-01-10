@@ -516,7 +516,7 @@ namespace backend_core
 
         #region Rules
         // Store rules
-        public DataResult<Rule> StoreRules(List<Rule> rules, ObjectId userId)
+        public DataResult<Rule> StoreRule(Rule rule)
         {
             DataResult<Rule> result = new DataResult<Rule>();
 
@@ -527,12 +527,43 @@ namespace backend_core
                 return result;
             }
 
-            // Delete all rules from this user and store the new ones
-            DeleteRules(userId);
+            try
+            {
+                GetRuleCollection().InsertOne(rule);
+                result.Success = true;
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.ErrorMessage = ex.Message;
+            }
+
+            return result;
+        }
+
+        // Update rule
+        public DataResult<Rule> UpdateRule(Rule rule, ObjectId ruleId)
+        {
+            DataResult<Rule> result = new DataResult<Rule>();
+
+            if (!mOnline)
+            {
+                result.Success = false;
+                result.ErrorMessage = DB_ERROR;
+                return result;
+            }
 
             try
             {
-                GetRuleCollection().InsertMany(rules);
+                GetRuleCollection().UpdateOne(Builders<Rule>.Filter.Eq(x => x.Id, ruleId),
+                    Builders<Rule>.Update.Set("DestIp", rule.DestIp)
+                                         .Set("DestPort", rule.DestPort)
+                                         .Set("SourceIp", rule.SourceIp)
+                                         .Set("SourcePort", rule.SourcePort)
+                                         .Set("Log", rule.Log)
+                                         .Set("Notify", rule.Notify)
+                                         .Set("Protocol", rule.Protocol)
+                                         .Set("Risk", rule.Risk));
                 result.Success = true;
             }
             catch (Exception ex)
@@ -575,7 +606,7 @@ namespace backend_core
         }
 
         // Delete rules
-        public DataResult<Rule> DeleteRules(ObjectId userId)
+        public DataResult<Rule> DeleteRule(ObjectId ruleId, ObjectId userId)
         {
             DataResult<Rule> result = new DataResult<Rule>();
 
@@ -588,7 +619,7 @@ namespace backend_core
             
             try
             {
-                GetRuleCollection().DeleteMany(Builders<Rule>.Filter.Eq(x => x.UserId, userId));
+                GetRuleCollection().DeleteOne(Builders<Rule>.Filter.Where(x => x.UserId == userId && x.Id == ruleId));
                 result.Success = true;
             }
             catch (Exception ex)

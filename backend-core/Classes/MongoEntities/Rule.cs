@@ -13,7 +13,6 @@ namespace backend_core
 {
     public class Rule
     {
-        [JsonIgnore]
         public ObjectId Id { get; set; }
         [JsonIgnore]
         public ObjectId UserId { get; set; }

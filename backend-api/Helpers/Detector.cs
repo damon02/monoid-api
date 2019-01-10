@@ -14,12 +14,16 @@ namespace BackendApi
     public class Detector
     {
         private const int MIN_SYNF_AMOUNT = 1000;
+        private const Risk SYN_RISK = Risk.Critical;
         private DateTime cTime = DateTime.Now;
         private MemoryCache Cache;
+        private Mailer Mailer = new Mailer();
+        private Settings Settings;
 
-        public Detector(MemoryCache _cache)
+        public Detector(MemoryCache _cache, Settings _settings)
         {
             Cache = _cache;
+            Settings = _settings;
         }
 
         /// <summary> Detect a synflood based on the Syn and Ack flags in the data </summary>
@@ -65,9 +69,13 @@ namespace BackendApi
                     string notifyKey = userId + "-synflood-detection-notified";
                     if (Cache.Get(key) == null)
                     {
+                        string message = "Synflood detected in your network";
+                        Mailer.SendSystemNotification(Settings, message, SYN_RISK);
+
                         MemoryCacheEntryOptions notifyEntryOptions = new MemoryCacheEntryOptions()
                            .SetAbsoluteExpiration(TimeSpan.FromHours(1));
 
+                        // Register entry in cache so notifications are not being spammed
                         Cache.Set(key, true, notifyEntryOptions);
                     }
                 }

@@ -54,42 +54,50 @@ namespace BackendApi.Controllers
 
             List<PacketFormatted> pFormatList = dataCore.GetPackets(ObjectId.Parse(Context.UserId), seconds);
 
-            Detector detector = new Detector(Cache);
+            Settings settings = UserCore.Instance.GetSettings(ObjectId.Parse(Context.UserId));
+
+            Detector detector = new Detector(Cache, settings);
             detector.DetectSynFlood(pFormatList, Context.UserId);
 
             return CreateResponse(data: JsonConvert.SerializeObject(pFormatList), success: true);
         }
 
         [HttpPost]
-        [Route("store-rules")]
-        public ActionResult StoreRules([FromBody]StoreRulesModel model)
+        [Route("store-rule")]
+        /// <summary> Updates or creates a new rule </summary>
+        public ActionResult StoreRule([FromBody]SingleRuleModel model)
         {
             if (Context == null || string.IsNullOrWhiteSpace(Context.UserId)) return CreateResponse("Unauthorized");
             if (model == null) return CreateResponse("Invalid model");
 
-            List<SingleRuleModel> jRules = model.Rules;
-            List<Rule> rules = new List<Rule>();
             ObjectId userId = ObjectId.Parse(Context.UserId);
+            string ruleId = string.IsNullOrWhiteSpace(model.RuleId) ? null : model.RuleId;
 
-            // Merge userid in rule object
-            foreach(SingleRuleModel sRm in jRules)
+            Rule rule = new Rule
             {
-                Rule rule = new Rule
-                {
-                    DestPort = sRm.DestPort,
-                    DestIp = sRm.DestIp,
-                    SourceIp = sRm.SourceIp,
-                    SourcePort = sRm.SourcePort,
-                    Message = sRm.Message,
-                    Protocol = sRm.Protocol,
-                    Risk = sRm.Risk,
-                    UserId = userId
-                };
+                DestPort = model.DestPort,
+                DestIp = model.DestIp,
+                SourceIp = model.SourceIp,
+                SourcePort = model.SourcePort,
+                Message = model.Message,
+                Protocol = model.Protocol,
+                Risk = model.Risk,
+                UserId = userId
+            };
 
-                rules.Add(rule);
-            }
+            bool success = dataCore.StoreRule(rule, userId, ruleId);
 
-            bool success = dataCore.StoreRules(rules, userId);
+            return CreateResponse(success: success);
+        }
+
+        [HttpPost]
+        [Route("delete-rule")]
+        public ActionResult DeleteRule([FromBody]DeleteRuleModel model)
+        {
+            if (Context == null || string.IsNullOrWhiteSpace(Context.UserId)) CreateResponse("Unauthorized");
+            if (model == null || string.IsNullOrWhiteSpace(model.RuleId)) CreateResponse("Invalid model");
+
+            bool success = dataCore.DeleteRule(ObjectId.Parse(model.RuleId), ObjectId.Parse(Context.UserId));
 
             return CreateResponse(success: success);
         }

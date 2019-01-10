@@ -49,19 +49,38 @@ namespace backend_core
             if (!dr.Success) return null;
 
             List<Rule> rules = GetRules(uId);
+            Settings settings = UserCore.Instance.GetSettings(uId);
 
-            PacketAnalyser pa = new PacketAnalyser(rules);
+            PacketAnalyser pa = new PacketAnalyser(rules, settings);
             List<PacketFormatted> packetsAnalysed = pa.Analyse(dr.Data);
 
             return packetsAnalysed;
         }
 
-        /// <summary> Store rules </summary>
-        public bool StoreRules(List<Rule> rules, ObjectId uId)
+        public bool DeleteRule(ObjectId ruleId, ObjectId uId)
         {
-            if (rules == null || rules.Count < 1 || uId == null) return false;
+            if (ruleId == null || uId == null) return false;
 
-            DataResult<Rule> dr = database.StoreRules(rules, uId);
+            DataResult<Rule> dr = database.DeleteRule(ruleId, uId);
+
+            return dr.Success;
+        }
+
+        /// <summary> Store rules </summary>
+        public bool StoreRule(Rule rule, ObjectId uId, string ruleId)
+        {
+            if (rule == null) return false;
+
+            DataResult<Rule> dr = null;
+
+            if (string.IsNullOrWhiteSpace(ruleId))
+            {
+                dr = database.StoreRule(rule);
+            }
+            else
+            {
+                dr = database.UpdateRule(rule, ObjectId.Parse(ruleId));     
+            }
 
             return dr.Success;
         }

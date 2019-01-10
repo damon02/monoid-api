@@ -17,5 +17,6 @@ namespace BackendApi
         public bool Log { get; set; }
         public string Message { get; set; }
         public Risk Risk { get; set; }
+        public string RuleId { get; set; }
     }
 }

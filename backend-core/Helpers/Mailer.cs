@@ -53,12 +53,12 @@ namespace backend_core
             return succeeded;
         }
 
-        public void SendSystemNotification(Settings settings, Risk type)
+        public void SendSystemNotification(Settings settings, string message, Risk type)
         {
             // If user does not wish to receive notifications stop
             if (!settings.EnabledNotifications) return;
 
-            string body = string.Empty;
+            string body = message;
             string subject = "Monoid Notification: " + type.ToString() + "";
 
             SendEmail(body, subject, settings.NotificationRecipients);

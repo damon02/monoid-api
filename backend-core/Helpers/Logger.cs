@@ -32,13 +32,28 @@ namespace backend_core
         {
             if (context == null) return;
 
-            EndPointLog log = new EndPointLog();
-            log.ClientIp = context.ClientIP;
-            log.Body = body;
-            log.TimeStamp = DateTime.Now;
-            log.EndPointType = type;
+            EndPointLog log = new EndPointLog
+            {
+                ClientIp = context.ClientIP,
+                Body = body,
+                TimeStamp = DateTime.Now,
+                EndPointType = type
+            };
 
             database.StoreEndPointLog(log);
+        }
+
+        public void CreateDataLog(string message, Risk risk)
+        {
+            if (string.IsNullOrWhiteSpace(message)) return;
+
+            DataLog dataLog = new DataLog
+            {
+                Message = message,
+                Risk = risk
+            };
+
+            database.StoreDataLog(dataLog);
         }
     }
 }

@@ -215,6 +215,9 @@ namespace backend_core
                 return result;
             }
 
+            // Delete old settings
+            GetSettingsCollection().DeleteOne(Builders<Settings>.Filter.Eq(x => x.UserId, settings.UserId));
+
             try
             {
                 GetSettingsCollection().InsertOne(settings);
@@ -292,7 +295,7 @@ namespace backend_core
 
         #endregion
 
-        #region EndPointLog & ErrorLog
+        #region EndPointLog & ErrorLog & DataLog
         // Errorlog store
         public DataResult<ErrorLog> StoreErrorLog(ErrorLog log)
         {
@@ -334,6 +337,32 @@ namespace backend_core
             try
             {
                 GetEndPointLogCollection().InsertOne(log);
+                result.Success = true;
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.ErrorMessage = ex.Message;
+            }
+
+            return result;
+        }
+
+        // Datalog store
+        public DataResult<DataLog> StoreDataLog(DataLog log)
+        {
+            DataResult<DataLog> result = new DataResult<DataLog>();
+
+            if (!mOnline)
+            {
+                result.Success = false;
+                result.ErrorMessage = DB_ERROR;
+                return result;
+            }
+
+            try
+            {
+                GetDataLogCollection().InsertOne(log);
                 result.Success = true;
             }
             catch (Exception ex)
@@ -636,6 +665,11 @@ namespace backend_core
         private IMongoCollection<Rule> GetRuleCollection()
         {
             return mDatabase.GetCollection<Rule>("rule");
+        }
+
+        private IMongoCollection<DataLog> GetDataLogCollection()
+        {
+            return mDatabase.GetCollection<DataLog>("datalog");
         }
 
         private IMongoCollection<ActivationRequest> GetActivationRequestCollection()

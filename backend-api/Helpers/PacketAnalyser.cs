@@ -3,13 +3,15 @@
  *______PacketAnalyser.cs_______*
  *______________________________*/
 
+using backend_core;
+using Microsoft.Extensions.Caching.Memory;
 using MongoDB.Bson;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace backend_core
+namespace BackendApi
 {
     public class PacketAnalyser
     {
@@ -17,11 +19,14 @@ namespace backend_core
         private Logger Logger = new Logger();
         private Mailer Mailer = new Mailer();
         private Settings Settings { get; set; }
+        private MemoryCache Cache { get; set; }
+        private const int GLOBAL_RULE_COOLDOWN = 3600;
 
-        public PacketAnalyser(List<Rule> _rules, Settings _settings)
+        public PacketAnalyser(List<Rule> _rules, Settings _settings, MemoryCache _cache)
         {
             this.Rules = _rules;
             this.Settings = _settings;
+            this.Cache = _cache;
         }
 
         public List<PacketFormatted> Analyse(List<Packet> packets)
@@ -49,6 +54,7 @@ namespace backend_core
                     int sourcePort = 0;
                     int destPort = 0;
                     int packetSize = 0;
+                    int timeToLive = 0;
                     bool hasSynFlag = false;
                     bool hasAckFlag = false;
                     bool hasRstFlag = false;
@@ -72,6 +78,11 @@ namespace backend_core
                         if (packetIp.Contains("ip_dst"))
                         {
                             destIp = packetIp["ip_dst"].AsString;
+                        }
+
+                        if(packetIp.Contains("ip_ttl"))
+                        {
+                            timeToLive = Convert.ToInt32(packetIp["ip_ttl"].AsString);
                         }
                     }
 
@@ -102,6 +113,12 @@ namespace backend_core
                         BsonDocument packetUdp = packetLayers["udp"].AsBsonDocument;
                         sourcePort = Convert.ToInt32(packetUdp["udp_srcport"].AsString);
                         destPort = Convert.ToInt32(packetUdp["udp_dstport"].AsString);
+                    }
+
+                    if (packetLayers.Contains("http"))
+                    {
+                        BsonDocument packetHttp = packetLayers["http"].AsBsonDocument;
+                        protocol = Protocol.HTTP;
                     }
 
                     #region Protocols
@@ -189,25 +206,48 @@ namespace backend_core
                         protocol = Protocol.LLC;
                     }
 
+                    // https://www.wireshark.org/docs/dfref/s/stp.html
                     else if (packetLayers.Contains("stp"))
                     {
                         protocol = Protocol.STP;
+                    } 
+
+                    // https://www.wireshark.org/docs/dfref/n/nbns.html
+                    else if (packetLayers.Contains("nbns"))
+                    {
+                        protocol = Protocol.NBNS;
                     }
 
+                    // No Wireshark documentation available
+                    else if (packetLayers.Contains("llmnr"))
+                    {
+                        protocol = Protocol.LLMNR;
+                    }
+
+                    // No Wireshark documentation available
+                    else if (packetLayers.Contains("ssdp"))
+                    {
+                        protocol = Protocol.SSDP;
+                    }
+
+                    if(mainProtocol == MainProtocol.TCP && protocol == Protocol.Undefined)
+                    {
+                        if(packetLayers.ElementCount == 4)
+                        {
+                            protocol = Protocol.TCP;
+                        }
+                    }
+                    else if(mainProtocol == MainProtocol.ICMP && protocol == Protocol.Undefined)
+                    {
+                        if(packetLayers.ElementCount == 4)
+                        {
+                            protocol = Protocol.ICMP;
+                        }
+                    }
 
                     // 
 
                     #endregion
-
-                    /*
-                    BsonDocument packetEth = packetLayers["eth"].AsBsonDocument;
-                    BsonDocument packetIcmp = packetLayers["icmp"].AsBsonDocument;
-                    BsonDocument packetLlc = packetLayers["llc"].AsBsonDocument;
-                    BsonDocument packetStp = packetLayers["stp"].AsBsonDocument;
-                    BsonDocument packetArp = packetLayers["arp"].AsBsonDocument;
-                    BsonDocument packetSsl = packetLayers["ssl"].AsBsonDocument;
-                    BsonDocument packetTcpSegments = packetLayers["tcp_segments"].AsBsonDocument;
-                    */
 
                     // Apply rules
                     Risk risk = Risk.Information;
@@ -232,9 +272,9 @@ namespace backend_core
                     }
 
                     // Execute most suitable rule
+                    string message = null;
                     if (appliedRule != null)
                     {
-                        string message = null;
                         if (appliedRule.Message.Contains("*|") && appliedRule.Message.Contains("|*"))
                         {
                             // Apply string formats
@@ -248,24 +288,41 @@ namespace backend_core
                             message = appliedRule.Message;
                         }
 
-                        if (appliedRule.Notify)
-                        {
-                            // Send email
-                            Mailer.SendSystemNotification(Settings, message, appliedRule.Risk);
-
-                            if (appliedRule.Log)
-                            {
-                                // also write log
-
-                            }
-                        }
-                        else if (appliedRule.Log)
-                        {
-                            // Write log
-
-                        }
-
                         risk = appliedRule.Risk;
+
+                        // Rule has been applied -> register entry in Cache so the notifications are not being spammed
+                        string ruleKey = Settings.UserId.ToString() + "-" + appliedRule.Id + "-applied";
+                        bool applyRule = true;
+                        if(Cache.TryGetValue(ruleKey, out bool applied))
+                        {
+                            applyRule = false;  
+                        }
+
+                        if(applyRule)
+                        {
+                            if (appliedRule.Notify)
+                            {
+                                // Send email
+                                Mailer.SendSystemNotification(Settings, message, risk);
+
+                                if (appliedRule.Log)
+                                {
+                                    // Store a log entry
+                                    Logger.CreateDataLog(message, risk);
+                                }
+                            }
+                            else if (appliedRule.Log)
+                            {
+                                // Store a log entry
+                                Logger.CreateDataLog(message, risk);
+                            }
+
+                            // Register cache entry
+                            MemoryCacheEntryOptions ruleCacheOptions = new MemoryCacheEntryOptions()
+                                .SetAbsoluteExpiration(TimeSpan.FromSeconds(GLOBAL_RULE_COOLDOWN));
+
+                            Cache.Set(ruleKey, true, ruleCacheOptions);
+                        }
                     }
 
                     PacketFormatted pFormatted = new PacketFormatted
@@ -274,6 +331,7 @@ namespace backend_core
                         DestinationPort = destPort,
                         DestinationMacAddress = destMac,
                         PacketSize = packetSize,
+                        TimeToLive = timeToLive,
                         Protocol = protocol,
                         MainProtocol = mainProtocol,
                         SourceIp = sourceIp,
@@ -284,6 +342,7 @@ namespace backend_core
                         HasRstFlag = hasRstFlag,
                         DnsRequest = dnsRequest,
                         Risk = risk,
+                        Reason = message,
                         RuleApplied = appliedRule != null
                     };
 
@@ -297,38 +356,5 @@ namespace backend_core
 
             return pFormatList;
         }
-    }
-
-    public enum MainProtocol
-    {
-        Undefined = 0,
-        ICMP = 1,
-        TCP = 6,
-        UDP = 17
-    }
-
-    public enum Protocol
-    {
-        Undefined = 0,
-        SSH = 1,
-        Telnet = 2,
-        Finger = 3,
-        TFTP = 4,
-        SNMP = 5,
-        FTP = 6,
-        SMB = 7,
-        ARP = 8,
-        DNS = 9,
-        LLC = 10,
-        STP = 11
-    }
-
-    public enum Risk
-    {
-        Information = 0,
-        Low = 1,
-        Medium = 2,
-        High = 3,
-        Critical = 4
     }
 }

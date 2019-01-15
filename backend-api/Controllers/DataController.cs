@@ -50,11 +50,19 @@ namespace BackendApi.Controllers
         [Route("get-packets")]
         public ActionResult GetPackets(int seconds = 5)
         {
-            if (string.IsNullOrWhiteSpace(Context.UserId)) return CreateResponse("Unauthorized");
+            if (Context == null || string.IsNullOrWhiteSpace(Context.UserId)) return CreateResponse("Unauthorized");
 
-            List<PacketFormatted> pFormatList = dataCore.GetPackets(ObjectId.Parse(Context.UserId), seconds);
+            List<Packet> packets = dataCore.GetPackets(ObjectId.Parse(Context.UserId), seconds);
 
-            Settings settings = UserCore.Instance.GetSettings(ObjectId.Parse(Context.UserId));
+            if (packets == null || packets.Count < 1) return CreateResponse("No data found");
+
+            ObjectId userId = ObjectId.Parse(Context.UserId);
+
+            List<Rule> rules = dataCore.GetRules(userId);
+            Settings settings = UserCore.Instance.GetSettings(userId);
+
+            PacketAnalyser pa = new PacketAnalyser(rules, settings, Cache);
+            List<PacketFormatted> pFormatList = pa.Analyse(packets);
 
             Detector detector = new Detector(Cache, settings);
             detector.DetectSynFlood(pFormatList, Context.UserId);
@@ -77,6 +85,8 @@ namespace BackendApi.Controllers
             {
                 DestPort = model.DestPort,
                 DestIp = model.DestIp,
+                Notify = model.Notify,
+                Log = model.Log,
                 SourceIp = model.SourceIp,
                 SourcePort = model.SourcePort,
                 Message = model.Message,

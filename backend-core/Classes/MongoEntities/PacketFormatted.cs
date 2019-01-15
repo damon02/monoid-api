@@ -5,9 +5,6 @@
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace backend_core
 {
@@ -27,10 +24,50 @@ namespace backend_core
         public string DestinationMacAddress { get; set; }
         public string SourceMacAddress { get; set; }
         public int PacketSize { get; set; }
+        public int TimeToLive { get; set; }
         public bool HasSynFlag { get; set; }
         public bool HasAckFlag { get; set; }
         public bool HasRstFlag { get; set; }
         public string DnsRequest { get; set; }
         public bool RuleApplied { get; set; }
+    }
+
+    public enum MainProtocol
+    {
+        Undefined = 0,
+        ICMP = 1,
+        TCP = 6,
+        UDP = 17
+    }
+
+    public enum Protocol
+    {
+        Undefined = 0,
+        SSH = 1,
+        Telnet = 2,
+        Finger = 3,
+        TFTP = 4,
+        SNMP = 5,
+        FTP = 6,
+        SMB = 7,
+        ARP = 8,
+        DNS = 9,
+        LLC = 10,
+        STP = 11,
+        HTTP = 12,
+        TCP = 13,
+        NBNS = 14,
+        LLMNR = 15,
+        SSDP = 16,
+        ICMP = 17
+    }
+
+    public enum Risk
+    {
+        Information = 0,
+        Low = 1,
+        Medium = 2,
+        High = 3,
+        Critical = 4
     }
 }

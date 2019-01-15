@@ -62,6 +62,7 @@ namespace BackendApi.Controllers
         [HttpPost]
         public ActionResult SaveUserSettings([FromBody] SaveUserSettingsModel model)
         {
+            if (Context == null || string.IsNullOrWhiteSpace(Context.UserId)) return CreateResponse("Unable to get token");
             if (model == null) return CreateResponse("None of the parameters can be null");
 
             Validator validator = new Validator();
@@ -70,7 +71,7 @@ namespace BackendApi.Controllers
 
             if (!passedEmailValidation) return CreateResponse("Invalid email address in recipients list");
 
-            bool saved = userCore.SaveSettings(new Settings { EnabledNotifications = model.EnabledNotifications, NotificationRecipients = model.NotificationRecipients });
+            bool saved = userCore.SaveSettings(new Settings { EnabledNotifications = model.EnabledNotifications, NotificationRecipients = model.NotificationRecipients, UserId = ObjectId.Parse(Context.UserId) });
 
             return CreateResponse(success: saved);
         }

@@ -42,19 +42,13 @@ namespace backend_core
         }
 
         /// <summary> Get packets from database and format them to display risks </summary>
-        public List<PacketFormatted> GetPackets(ObjectId uId, int seconds)
+        public List<Packet> GetPackets(ObjectId uId, int seconds)
         {
             DataResult<Packet> dr = database.GetPackets(uId, seconds);
 
             if (!dr.Success) return null;
 
-            List<Rule> rules = GetRules(uId);
-            Settings settings = UserCore.Instance.GetSettings(uId);
-
-            PacketAnalyser pa = new PacketAnalyser(rules, settings);
-            List<PacketFormatted> packetsAnalysed = pa.Analyse(dr.Data);
-
-            return packetsAnalysed;
+            return dr.Data;
         }
 
         public bool DeleteRule(ObjectId ruleId, ObjectId uId)

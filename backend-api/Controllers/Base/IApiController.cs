@@ -205,6 +205,24 @@ namespace BackendApi.Controllers
                 case "GetTrafficCountIp":
                     endPointType = EndPointType.GetTrafficCountIp;
                     break;
+                case "TestConnection":
+                    endPointType = EndPointType.TestConnection;
+                    break;
+                case "GetAllNotifications":
+                    endPointType = EndPointType.GetAllNotifications;
+                    break;
+                case "GetAllCounters":
+                    endPointType = EndPointType.GetAllCounters;
+                    break;
+                case "GetTrafficByTlsVersion":
+                    endPointType = EndPointType.GetTrafficByTlsVersion;
+                    break;
+                case "GetTrafficByProtocol":
+                    endPointType = EndPointType.GetTrafficByProtocol;
+                    break;
+                default:
+                    endPointType = EndPointType.Default;
+                    break;
             }
 
             Logger.CreateEndPointLog(endPointContext, body, endPointType);

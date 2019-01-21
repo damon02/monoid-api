@@ -42,6 +42,12 @@ namespace backend_core
         SaveSettings = 12,
         GetSettings = 13,
         GetTrafficCountIp = 14,
-        GetTrafficSizeIp = 15
+        GetTrafficSizeIp = 15,
+        TestConnection = 16,
+        GetAllNotifications = 17,
+        GetAllCounters = 18,
+        GetLineGraphData = 19,
+        GetTrafficByProtocol = 20,
+        GetTrafficByTlsVersion = 21        
     }
 }

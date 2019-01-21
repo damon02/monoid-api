@@ -5,14 +5,17 @@
 
 using backend_core;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Claims;
+using System.Text;
 
 namespace BackendApi.Controllers
 {
@@ -93,6 +96,8 @@ namespace BackendApi.Controllers
     public class PreProcessAttribute : Attribute, IActionFilter, IOrderedFilter
     {
         public int Order { get; set; }
+        private Logger Logger = new Logger();
+        private readonly string[] BannedKeys = new string[] { "password" };
 
         public void OnActionExecuting(ActionExecutingContext context)
         {
@@ -114,7 +119,97 @@ namespace BackendApi.Controllers
 
         public void OnActionExecuted(ActionExecutedContext context)
         {
-            if (string.IsNullOrWhiteSpace((context.Controller as IApiController).Context.ClientIP))
+            EndPointContext endPointContext = (context.Controller as IApiController).Context;
+
+            string body = null;
+            EndPointType endPointType = EndPointType.Default;
+
+            string actionName = (context.Controller as IApiController).ControllerContext.ActionDescriptor.ActionName;
+
+            if(context.HttpContext.Request.Method == "POST")
+            {
+                context.HttpContext.Request.EnableRewind();
+
+                using (StreamReader reader = new StreamReader(context.HttpContext.Request.Body, Encoding.UTF8, true, 1024, true))
+                {
+                    // TODO: FIX BODY
+                    body = reader.ReadToEnd();
+                }
+
+                try
+                {
+                    JObject jsonBody = JObject.Parse(body);
+                    foreach(JProperty prop in jsonBody.Properties())
+                    {
+                        if(BannedKeys.Contains(prop.Name.ToLower()))
+                        {
+                            jsonBody.Property(prop.Name).Remove();
+                        }
+                    }
+
+                    body = jsonBody.ToString();
+                }
+                catch(Exception ex)
+                {
+                    Logger.CreateErrorLog(ex);
+                }
+            }
+
+            switch(actionName)
+            {
+                case "SaveUserSettings":
+                    endPointType = EndPointType.SaveSettings;
+                    break;
+                case "GetUserSettings":
+                    endPointType = EndPointType.GetSettings;
+                    break;
+                case "RecoverPassword":
+                    endPointType = EndPointType.PasswordRecovery;
+                    break;
+                case "RequestPasswordRecovery":
+                    endPointType = EndPointType.RequestPasswordRecovery;
+                    break;
+                case "Register":
+                    endPointType = EndPointType.RegisterUser;
+                    break;
+                case "ActivateUser":
+                    endPointType = EndPointType.ActivateUser;
+                    break;
+                case "RequestToken":
+                    endPointType = EndPointType.RequestToken;
+                    break;
+                case "GetToken":
+                    endPointType = EndPointType.GetToken;
+                    break;
+                case "StorePackets":
+                    endPointType = EndPointType.StorePackets;
+                    break;
+                case "GetPacketCount":
+                    endPointType = EndPointType.GetPacketCount;
+                    break;
+                case "GetPackets":
+                    endPointType = EndPointType.GetPackets;
+                    break;
+                case "StoreRule":
+                    endPointType = EndPointType.StoreRule;
+                    break;
+                case "DeleteRule":
+                    endPointType = EndPointType.DeleteRule;
+                    break;
+                case "GetRules":
+                    endPointType = EndPointType.GetRules;
+                    break;
+                case "GetTrafficSizeIp":
+                    endPointType = EndPointType.GetTrafficSizeIp;
+                    break;
+                case "GetTrafficCountIp":
+                    endPointType = EndPointType.GetTrafficCountIp;
+                    break;
+            }
+
+            Logger.CreateEndPointLog(endPointContext, body, endPointType);
+
+            if (string.IsNullOrWhiteSpace(endPointContext.ClientIP))
             {
                 throw new Exception("Unable to determine client IP");
             }

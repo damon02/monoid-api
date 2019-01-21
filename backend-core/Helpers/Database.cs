@@ -34,7 +34,7 @@ namespace backend_core
         IMongoDatabase mDatabase;
         bool mOnline = false;
         const string DB_ERROR = "Unable to establish database connection";
-
+        
         public Database(MongoClient mExternalClient = null)
         {
             mClient = mExternalClient == null ? new MongoClient("mongodb://localhost:27017") : mExternalClient;
@@ -251,19 +251,21 @@ namespace backend_core
             try
             {
                 GetPacketCollection().InsertMany(packets);
+                result.Data = packets;
                 result.Success = true;
             }
             catch(Exception ex)
             {
                 result.Success = false;
                 result.ErrorMessage = ex.Message;
+                new Logger().CreateErrorLog(ex);
             }
             
             return result;
         }
 
         /// <summary> Get packets based on time parameters </summary>
-        public DataResult<Packet> GetPackets(ObjectId uId, int seconds)
+        public DataResult<Packet> GetPackets(ObjectId uId, int packetLimit = 2000)
         {
             DataResult<Packet> result = new DataResult<Packet>();
 
@@ -274,10 +276,9 @@ namespace backend_core
                 return result;
             }
 
-            DateTime now = DateTime.Now;
-            DateTime range = now.AddSeconds(-seconds);
-
-            List<Packet> foundPackets = GetPacketCollection().Find(x => x.UserId == uId && x.CreationDate < now && x.CreationDate > range).ToList();
+            List<Packet> foundPackets = GetPacketCollection().Find(x => x.UserId == uId)
+                .SortByDescending(x => x.CreationDate)
+                .Limit(packetLimit).ToList();
             
             if (foundPackets.Count > 0)
             {
@@ -288,6 +289,91 @@ namespace backend_core
             {
                 result.Success = false;
                 result.ErrorMessage = "Unable to retrieve packets";
+            }
+
+            return result;
+        }
+
+        /// <summary> Store formatted packets into database </summary>
+        public DataResult<PacketFormatted> StorePacketsFormatted(List<PacketFormatted> packets)
+        {
+            DataResult<PacketFormatted> result = new DataResult<PacketFormatted>();
+
+            if (!mOnline)
+            {
+                result.Success = false;
+                result.ErrorMessage = DB_ERROR;
+                return result;
+            }
+
+            try
+            {
+                GetPacketFormattedCollection().InsertMany(packets);
+                result.Success = true;
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.ErrorMessage = ex.Message;
+                new Logger().CreateErrorLog(ex);
+            }
+
+            return result;
+        }
+
+        /// <summary> Get formatted packets </summary>
+        public DataResult<PacketFormatted> GetFormattedPackets(ObjectId uId, DateTime startTime, DateTime endTime, int packetLimit)
+        {
+            DataResult<PacketFormatted> result = new DataResult<PacketFormatted>();
+
+            if (!mOnline)
+            {
+                result.Success = false;
+                result.ErrorMessage = DB_ERROR;
+                return result;
+            }
+
+            List<PacketFormatted> foundPackets = GetPacketFormattedCollection().Find(x => x.UserId == uId && x.IssueDate < endTime && x.IssueDate > startTime)
+                .SortByDescending(x => x.IssueDate)
+                .Limit(packetLimit).ToList();
+
+            if (foundPackets.Count > 0)
+            {
+                result.Success = true;
+                result.Data = foundPackets;
+            }
+            else
+            {
+                result.Success = false;
+                result.ErrorMessage = "Unable to retrieve packets";
+            }
+
+            return result;
+        }
+
+        /// <summary> Get total packet count </summary>
+        public DataResult<long> GetPacketCount(ObjectId uId)
+        {
+            DataResult<long> result = new DataResult<long>();
+
+            if (!mOnline)
+            {
+                result.Success = false;
+                result.ErrorMessage = DB_ERROR;
+                return result;
+            }
+
+            long packetCount = GetPacketFormattedCollection().CountDocuments(Builders<PacketFormatted>.Filter.Eq(x => x.UserId, uId));
+
+            if (packetCount > 0)
+            {
+                result.Success = true;
+                result.Data = new List<long> { packetCount };
+            }
+            else
+            {
+                result.Success = false;
+                result.ErrorMessage = "Unable to retrieve packet count";
             }
 
             return result;
@@ -369,6 +455,42 @@ namespace backend_core
             {
                 result.Success = false;
                 result.ErrorMessage = ex.Message;
+            }
+
+            return result;
+        }
+
+        public DataResult<DataLog> GetDataLogs(ObjectId uId, bool visible = true, bool ignoreVisibility = false)
+        {
+            DataResult<DataLog> result = new DataResult<DataLog>();
+
+            if (!mOnline)
+            {
+                result.Success = false;
+                result.ErrorMessage = DB_ERROR;
+                return result;
+            }
+            List<DataLog> dataLogs = new List<DataLog>();
+
+            if (ignoreVisibility)
+            {
+                dataLogs = GetDataLogCollection().Find(x => x.UserId == uId).ToList();
+            }
+            else
+            {
+                dataLogs = GetDataLogCollection().Find(x => x.Visible == visible && x.UserId == uId).ToList();
+            }
+            
+
+            if (dataLogs.Count > 0)
+            {
+                result.Success = true;
+                result.Data = dataLogs;
+            }
+            else
+            {
+                result.Success = false;
+                result.ErrorMessage = "Unable to find any datalogs";
             }
 
             return result;
@@ -705,6 +827,11 @@ namespace backend_core
         private IMongoCollection<Packet> GetPacketCollection()
         {
             return mDatabase.GetCollection<Packet>("packet");
+        }
+
+        private IMongoCollection<PacketFormatted> GetPacketFormattedCollection()
+        {
+            return mDatabase.GetCollection<PacketFormatted>("packetformatted");
         }
         #endregion
     }

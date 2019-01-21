@@ -3,9 +3,8 @@
  *___________Logger.cs__________*
  *______________________________*/
 
+using MongoDB.Bson;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace backend_core
 {
@@ -43,14 +42,17 @@ namespace backend_core
             database.StoreEndPointLog(log);
         }
 
-        public void CreateDataLog(string message, Risk risk)
+        public void CreateDataLog(ObjectId uId, string message, Risk risk, bool visible = true)
         {
             if (string.IsNullOrWhiteSpace(message)) return;
 
             DataLog dataLog = new DataLog
             {
+                UserId = uId,
                 Message = message,
-                Risk = risk
+                Risk = risk,
+                TimeStamp = DateTime.Now,
+                Visible = visible
             };
 
             database.StoreDataLog(dataLog);

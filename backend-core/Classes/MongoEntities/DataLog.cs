@@ -14,5 +14,8 @@ namespace backend_core
         public ObjectId UserId { get; set; }
         public Risk Risk { get; set; }
         public string Message { get; set; }
+        public DateTime TimeStamp { get; set; }
+        [JsonIgnore]
+        public bool Visible { get; set; }
     }
 }

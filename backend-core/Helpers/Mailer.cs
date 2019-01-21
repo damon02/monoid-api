@@ -62,6 +62,8 @@ namespace backend_core
             string subject = "Monoid Notification: " + type.ToString() + "";
 
             SendEmail(body, subject, settings.NotificationRecipients);
+
+            
         }
     }
 }

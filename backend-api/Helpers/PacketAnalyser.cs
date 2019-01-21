@@ -10,6 +10,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace BackendApi
 {
@@ -44,7 +45,7 @@ namespace BackendApi
                     string packetIndex = cPacket["_index"].AsString;
                     string packetType = cPacket["_type"].AsString;
 
-                    MainProtocol mainProtocol = MainProtocol.Undefined;
+                    MainProtocol mainProtocol = MainProtocol.IP;
                     Protocol protocol = Protocol.Undefined;
                     string sourceIp = null;
                     string destIp = null;
@@ -58,6 +59,8 @@ namespace BackendApi
                     bool hasSynFlag = false;
                     bool hasAckFlag = false;
                     bool hasRstFlag = false;
+                    int icmpType = 0;
+                    DateTime issueDate = DateTime.Now;
 
                     BsonDocument packetSource = cPacket["_source"].AsBsonDocument;
                     BsonDocument packetLayers = packetSource["layers"].AsBsonDocument;
@@ -67,6 +70,11 @@ namespace BackendApi
                     {
                         BsonDocument packetFrame = packetLayers["frame"].AsBsonDocument;
                         packetSize = Convert.ToInt32(packetFrame["frame_len"].AsString);
+                        try
+                        {
+                            issueDate = Convert.ToDateTime(packetFrame["frame_time"].AsString);
+                        }
+                        catch { }
                     }
 
                     // https://www.wireshark.org/docs/dfref/i/ip.html
@@ -113,6 +121,11 @@ namespace BackendApi
                         BsonDocument packetUdp = packetLayers["udp"].AsBsonDocument;
                         sourcePort = Convert.ToInt32(packetUdp["udp_srcport"].AsString);
                         destPort = Convert.ToInt32(packetUdp["udp_dstport"].AsString);
+                    }
+                    else if (packetLayers.Contains("icmp"))
+                    {
+                        BsonDocument packetIcmp = packetLayers["icmp"].AsBsonDocument;
+                        icmpType = Convert.ToInt32(packetIcmp["icmp_type"].AsString);
                     }
 
                     if (packetLayers.Contains("http"))
@@ -230,9 +243,32 @@ namespace BackendApi
                         protocol = Protocol.SSDP;
                     }
 
+                    else if(packetLayers.Contains("ssl"))
+                    {
+                        BsonDocument packetSsl = packetLayers["ssl"].AsBsonDocument;
+                        BsonDocument packetSslRecord = packetSsl["ssl_record"].AsBsonDocument;
+                        string rawversion = packetSslRecord["ssl_record_version"].AsString;
+
+                        // Apparently this is how to determine TLS version (wireshark)
+                        if (rawversion.Last() == '3')
+                        {
+                            protocol = Protocol.TLSV12;
+                        }
+                        else if (rawversion.Last() == '2')
+                        {
+                            protocol = Protocol.TLSV11;
+                        }
+                        else if (rawversion.Last() == '1')
+                        {
+                            protocol = Protocol.TLSV1;
+                        }
+                    }
+
                     if(mainProtocol == MainProtocol.TCP && protocol == Protocol.Undefined)
                     {
-                        if(packetLayers.ElementCount == 4)
+                        if(packetLayers.ElementCount == 4 
+                            || (packetLayers.ElementCount == 5 && packetLayers.Contains("transum"))
+                            || (packetLayers.ElementCount == 5 && packetLayers.Contains("data")))
                         {
                             protocol = Protocol.TCP;
                         }
@@ -242,6 +278,14 @@ namespace BackendApi
                         if(packetLayers.ElementCount == 4)
                         {
                             protocol = Protocol.ICMP;
+                        }
+                    }
+                    else if(mainProtocol == MainProtocol.UDP && protocol == Protocol.Undefined)
+                    {
+                        if(packetLayers.ElementCount == 4
+                            || (packetLayers.ElementCount == 5 && packetLayers.Contains("db-lsp-disc")))
+                        {
+                            protocol = Protocol.UDP;
                         }
                     }
 
@@ -308,13 +352,18 @@ namespace BackendApi
                                 if (appliedRule.Log)
                                 {
                                     // Store a log entry
-                                    Logger.CreateDataLog(message, risk);
+                                    Logger.CreateDataLog(Settings.UserId, message, risk);
                                 }
                             }
                             else if (appliedRule.Log)
                             {
                                 // Store a log entry
-                                Logger.CreateDataLog(message, risk);
+                                Logger.CreateDataLog(Settings.UserId, message, risk);
+                            }
+
+                            if(!appliedRule.Log)
+                            {
+                                Logger.CreateDataLog(Settings.UserId, message, risk, visible:false);
                             }
 
                             // Register cache entry
@@ -327,6 +376,7 @@ namespace BackendApi
 
                     PacketFormatted pFormatted = new PacketFormatted
                     {
+                        UserId = Settings.UserId,
                         DestinationIp = destIp,
                         DestinationPort = destPort,
                         DestinationMacAddress = destMac,
@@ -343,14 +393,17 @@ namespace BackendApi
                         DnsRequest = dnsRequest,
                         Risk = risk,
                         Reason = message,
-                        RuleApplied = appliedRule != null
+                        RuleApplied = appliedRule != null,
+                        IssueDate = issueDate,
+                        IcmpType = icmpType
                     };
 
                     pFormatList.Add(pFormatted);
                 }
                 catch(Exception ex)
                 {
-                    Logger.CreateErrorLog(ex);
+                    // DO nothing
+                    //Logger.CreateErrorLog(ex);
                 }
             }
 

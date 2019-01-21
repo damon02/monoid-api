@@ -3,13 +3,19 @@
  *______PacketFormatted.cs______*
  *______________________________*/
 
+using MongoDB.Bson;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using System;
 
 namespace backend_core
 {
     public class PacketFormatted
     {
+        [JsonIgnore]
+        public ObjectId Id { get; set; }
+        [JsonIgnore]
+        public ObjectId UserId { get; set; }
         [JsonConverter(typeof(StringEnumConverter))]
         public Risk Risk { get; set; }
         public string Reason { get; set; }
@@ -30,11 +36,16 @@ namespace backend_core
         public bool HasRstFlag { get; set; }
         public string DnsRequest { get; set; }
         public bool RuleApplied { get; set; }
+        public DateTime IssueDate { get; set; }
+
+        // Only used for attack analysis no need to serialize
+        [JsonIgnore]
+        public int IcmpType { get; set; }
     }
 
     public enum MainProtocol
     {
-        Undefined = 0,
+        IP = 0,
         ICMP = 1,
         TCP = 6,
         UDP = 17
@@ -59,7 +70,11 @@ namespace backend_core
         NBNS = 14,
         LLMNR = 15,
         SSDP = 16,
-        ICMP = 17
+        ICMP = 17,
+        TLSV1 = 18,
+        TLSV11 = 19,
+        TLSV12 = 20,
+        UDP = 21
     }
 
     public enum Risk

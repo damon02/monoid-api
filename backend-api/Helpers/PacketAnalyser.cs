@@ -346,8 +346,9 @@ namespace BackendApi
                         {
                             if (appliedRule.Notify)
                             {
+                                string title = "Rule condition met";
                                 // Send email
-                                Mailer.SendSystemNotification(Settings, message, risk);
+                                Mailer.SendSystemNotification(Settings, message, risk, title);
 
                                 if (appliedRule.Log)
                                 {

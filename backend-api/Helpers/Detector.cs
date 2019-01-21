@@ -87,7 +87,7 @@ namespace BackendApi
                     string notifyKey = Settings.UserId + "-synflood-detection-notified";
                     if (Cache.Get(notifyKey) == null)
                     {
-                        Mailer.SendSystemNotification(Settings, message, riskLevel);
+                        Mailer.SendSystemNotification(Settings, message, riskLevel, "Synflood detected");
 
                         Logger.CreateDataLog(Settings.UserId, message, riskLevel);
 
@@ -138,7 +138,7 @@ namespace BackendApi
             if(!string.IsNullOrWhiteSpace(possibleSourceIp) && Cache.TryGetValue(key, out bool notify))
             {
                 string message = "Your network is possibly being ping sweeped by the following IP: "+possibleSourceIp;
-                Mailer.SendSystemNotification(Settings, message, PING_SWEEP_RISK);
+                Mailer.SendSystemNotification(Settings, message, PING_SWEEP_RISK, "Ping sweep detected");
 
                 Logger.CreateDataLog(Settings.UserId, message, PING_SWEEP_RISK);
 
@@ -200,7 +200,7 @@ namespace BackendApi
                     if (Cache.Get(notifyKey) == null)
                     {
                         string message = "Syn scan detected in your network: Open ports response: ("+Convert.ToString(synAckCount)+")";
-                        Mailer.SendSystemNotification(Settings, message, SYN_SCAN_RISK);
+                        Mailer.SendSystemNotification(Settings, message, SYN_SCAN_RISK, "Syn scan detected");
 
                         Logger.CreateDataLog(Settings.UserId, message, SYN_SCAN_RISK);
 

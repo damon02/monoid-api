@@ -13,4 +13,9 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\backend-api\backend-api.csproj" />
+    <ProjectReference Include="..\backend-core\backend-core.csproj" />
+  </ItemGroup>
+
 </Project>

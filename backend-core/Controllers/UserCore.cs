@@ -92,15 +92,14 @@ namespace backend_core
             string link = DASHBOARD_URL+"recovery/" + recoveryToken;
 
             string body = string.Empty;
-            body += "Hi, \n\n";
-            body += "<a href=" + link + ">Click here</a> to recover your password \n\n";
-            body += "Monoid Inc.";
+            body += "<a href=" + link + ">Click here</a> to recover your password ";
 
-            string subject = "Monoid Dashboard: Password recovery";
+            string title = "Password recovery";
+            string subject = "Monoid Dashboard: "+ title;
             string recipient = user.EmailAddress;
 
             Mailer mailer = new Mailer();
-            succeeded = mailer.SendEmail(body, subject, new[] { recipient });
+            succeeded = mailer.SendEmail(body, subject, title, new[] { recipient });
 
             return defaultResponse;
         }

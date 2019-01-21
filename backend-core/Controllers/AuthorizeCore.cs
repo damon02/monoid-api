@@ -70,10 +70,11 @@ namespace backend_core
             body += "<a href=" + link + ">Click here</a> to activate your account \n\n";
             body += "Monoid Inc.";
 
-            string subject = "Monoid Dashboard: Account activation";
+            string title = "Account activation";
+            string subject = "Monoid Dashboard: "+title;
             string recipient = user.EmailAddress;
 
-            mailer.SendEmail(body, subject, new[] { recipient });
+            mailer.SendEmail(body, subject, title, new[] { recipient });
 
             return dr;
         }

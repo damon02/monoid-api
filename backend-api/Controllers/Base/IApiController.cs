@@ -130,12 +130,12 @@ namespace BackendApi.Controllers
             {
                 context.HttpContext.Request.EnableRewind();
 
-                using (StreamReader reader = new StreamReader(context.HttpContext.Request.Body, Encoding.UTF8, true, 1024, true))
+                using (StreamReader reader = new StreamReader(context.HttpContext.Request.Body))
                 {
                     // TODO: FIX BODY
                     body = reader.ReadToEnd();
                 }
-
+                
                 try
                 {
                     JObject jsonBody = JObject.Parse(body);
@@ -151,7 +151,7 @@ namespace BackendApi.Controllers
                 }
                 catch(Exception ex)
                 {
-                    Logger.CreateErrorLog(ex);
+                    //Logger.CreateErrorLog(ex);
                 }
             }
 

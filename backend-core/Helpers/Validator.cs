@@ -21,17 +21,34 @@ namespace backend_core
         char[] BannedChars = new char[] { '<', '>', '"' };
 
         /// <summary> Determine if supplied email address is a legitimate email address </summary>
-        public bool IsValidEmail(string email)
+        public bool IsValidEmail(string email, bool validateWithDatabase = false)
         {
             try
             {
                 MailAddress validMail = new MailAddress(email);
-                return validMail.Address == email;
+                if(validMail.Address == email)
+                {
+                    if (validateWithDatabase && database.CheckEmail(email).Success)
+                    {
+                        // Returning success = true means data is found
+                        return false;
+                    }
+                    else
+                    {
+                        return true;
+                    }
+                }
+                else
+                {
+                    return false;
+                }
             }
             catch
             {
                 return false;
             }
+
+            
         }
 
         /// <summary> Determine if a user exists and if it's length is valid </summary>
@@ -117,14 +134,7 @@ namespace backend_core
                 }
                 else
                 {
-                    if(dc.Length > i)
-                    {
-                        salt += dc[i].ToString();
-                    }
-                    else
-                    {
-                        salt += (c + 5).ToString();
-                    }
+                    salt += (c + 5).ToString();                  
                 }
             }   
             

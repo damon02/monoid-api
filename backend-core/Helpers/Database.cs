@@ -72,6 +72,33 @@ namespace backend_core
             return result;
         }
 
+        /// <summary> Check if username exists </summary>
+        public DataResult<User> CheckEmail(string email)
+        {
+            DataResult<User> result = new DataResult<User>();
+
+            if (!mOnline)
+            {
+                result.Success = false;
+                result.ErrorMessage = DB_ERROR;
+                return result;
+            }
+
+            List<User> users = GetUserCollection().Find(x => x.EmailAddress == email).ToList();
+
+            if (users.Count > 0)
+            {
+                result.ErrorMessage = "This email address already exists";
+                result.Success = true;
+            }
+            else
+            {
+                result.Success = false;
+            }
+
+            return result;
+        }
+
         /// <summary> Get a user </summary>
         public DataResult<User> GetUser(User user)
         {

@@ -41,7 +41,7 @@ namespace BackendApi.Controllers
 
             if (!validator.IsValidUserName(model.UserName)) return CreateResponse("Invalid username");
 
-            if (!validator.IsValidEmail(model.EmailAddress)) return CreateResponse("Invalid email address");
+            if (!validator.IsValidEmail(model.EmailAddress, true)) return CreateResponse("Invalid email address");
 
             List<string> passwordErrors = validator.IsValidPassword(model.Password);
 

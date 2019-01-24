@@ -85,7 +85,7 @@ namespace backend_core
         {
             List<LineGraphData> response = new List<LineGraphData>();
 
-            List<PacketFormatted> packets = GetPacketsFormatted(uId, startTime, endTime);
+            List<PacketFormatted> packets = GetPacketsFormatted(uId, startTime, endTime, int.MaxValue);
 
             TimeSpan interval = new TimeSpan(0, 10, 0);
 
@@ -103,7 +103,7 @@ namespace backend_core
         {
             List<TrafficCountPerIp> response = new List<TrafficCountPerIp>();
 
-            List<PacketFormatted> packets = GetPacketsFormatted(uId, startTime, endTime);
+            List<PacketFormatted> packets = GetPacketsFormatted(uId, startTime, endTime, int.MaxValue);
 
             if (packets == null || packets.Count < 1) return response;
 
@@ -128,7 +128,7 @@ namespace backend_core
         {
             List<TrafficSizePerIp> response = new List<TrafficSizePerIp>();
 
-            List<PacketFormatted> packets = GetPacketsFormatted(uId, startTime, endTime);
+            List<PacketFormatted> packets = GetPacketsFormatted(uId, startTime, endTime, int.MaxValue);
 
             if (packets == null || packets.Count < 1) return response;
 
@@ -153,7 +153,7 @@ namespace backend_core
         {
             List<TrafficByProtocol> response = new List<TrafficByProtocol>();
 
-            List<PacketFormatted> packets = GetPacketsFormatted(uId, startTime, endTime);
+            List<PacketFormatted> packets = GetPacketsFormatted(uId, startTime, endTime, int.MaxValue);
 
             if (packets == null || packets.Count < 1) return response;
 
@@ -173,7 +173,7 @@ namespace backend_core
         {
             List<TrafficByTlsVersion> response = new List<TrafficByTlsVersion>();
 
-            List<PacketFormatted> packets = GetPacketsFormatted(uId, startTime, endTime);
+            List<PacketFormatted> packets = GetPacketsFormatted(uId, startTime, endTime, int.MaxValue);
 
             if (packets == null || packets.Count < 1) return null;
 
@@ -196,7 +196,7 @@ namespace backend_core
 
             Counters counters = new Counters();
 
-            if (packets == null && packets.Count < 1) return counters;
+            if (packets == null || packets.Count < 1) return counters;
 
             // Risk from rules
             counters.LowRisks = packets.Where(x => x.Risk == Risk.Low).Count();

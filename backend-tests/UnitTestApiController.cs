@@ -7,7 +7,7 @@ using Xunit;
 
 namespace backend_tests
 {
-    public class UnitTest1
+    public class UnitTestApiController
     {
         [Fact]
         public void Test1()

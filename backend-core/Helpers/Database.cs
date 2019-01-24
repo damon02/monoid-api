@@ -30,8 +30,8 @@ namespace backend_core
             }
         }
         
-        MongoClient mClient;
-        IMongoDatabase mDatabase;
+        private MongoClient mClient;
+        private IMongoDatabase mDatabase;
         bool mOnline = false;
         const string DB_ERROR = "Unable to establish database connection";
         

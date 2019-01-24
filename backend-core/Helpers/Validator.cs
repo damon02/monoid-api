@@ -18,6 +18,7 @@ namespace backend_core
         const int maxUserNameLength = 50;
         private Database database = Database.Instance;
         private static Random random = new Random();
+        char[] BannedChars = new char[] { '<', '>', '"' };
 
         /// <summary> Determine if supplied email address is a legitimate email address </summary>
         public bool IsValidEmail(string email)
@@ -37,6 +38,24 @@ namespace backend_core
         public bool IsValidUserName(string userName)
         {
             if (userName.Length > maxUserNameLength) return false;
+
+            bool noBannedChars = true;
+
+            foreach(char c in userName)
+            {
+                if(BannedChars.Contains(c))
+                {
+                    noBannedChars = false;
+                    break;
+                }
+                else if(userName.Contains("\\"))
+                {
+                    noBannedChars = false;
+                    break;
+                }
+            }
+
+            if (!noBannedChars) return false;
 
             if (database.CheckUsername(userName).Success) return false;
 
@@ -98,7 +117,7 @@ namespace backend_core
                 }
                 else
                 {
-                    if(dc.Length < i)
+                    if(dc.Length > i)
                     {
                         salt += dc[i].ToString();
                     }

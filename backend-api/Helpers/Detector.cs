@@ -46,7 +46,7 @@ namespace BackendApi
             List<Tuple<int[], DateTime>> synFloodData;
 
             MemoryCacheEntryOptions cacheEntryOptions = new MemoryCacheEntryOptions()
-                                    .SetAbsoluteExpiration(new DateTimeOffset(DateTime.Now.AddMinutes(1)));
+                                    .SetAbsoluteExpiration(new DateTimeOffset(cTime.AddMinutes(1)));
 
             if (Cache.Get(key) == null)
             {
@@ -63,7 +63,7 @@ namespace BackendApi
 
             if(synFloodData.Count > 0)
             {
-                synFloodData.RemoveAll(x => DateTime.Compare(x.Item2.AddMinutes(1), DateTime.Now) < 1);
+                synFloodData.RemoveAll(x => DateTime.Compare(x.Item2.AddMinutes(1), cTime) < 1);
 
                 synCount = synFloodData.Sum(x => x.Item1[0]);
                 synAckCount = synFloodData.Sum(x => x.Item1[1]);
@@ -156,6 +156,9 @@ namespace BackendApi
             string key = Settings.UserId + "-synscan-detection";
 
             string[] sourceIps = pFormatList.Where(x => x.HasSynFlag && !x.HasAckFlag && !x.HasRstFlag).Select(x => x.SourceIp).ToArray();
+
+            if (sourceIps == null || sourceIps.Length < 1) return;
+
             string possibleSourceIp = sourceIps.GroupBy(x => x).OrderByDescending(y => y.Count()).First().Key;
 
             int synCount = pFormatList.Count(x => x.HasSynFlag && !x.HasAckFlag && !x.HasRstFlag && x.SourceIp == possibleSourceIp);
@@ -169,7 +172,7 @@ namespace BackendApi
             List<Tuple<int[], DateTime>> portScanData;
 
             MemoryCacheEntryOptions cacheEntryOptions = new MemoryCacheEntryOptions()
-                                    .SetAbsoluteExpiration(new DateTimeOffset(DateTime.Now.AddMinutes(2)));
+                                    .SetAbsoluteExpiration(new DateTimeOffset(cTime.AddMinutes(2)));
 
             if (Cache.Get(key) == null)
             {

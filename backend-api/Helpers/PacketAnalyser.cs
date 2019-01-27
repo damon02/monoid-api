@@ -302,7 +302,7 @@ namespace BackendApi
                     {
                         foreach (Rule rule in Rules)
                         {
-                            if (rule.Protocol == mainProtocol)
+                            if (rule.MainProtocol == mainProtocol && rule.Protocol == protocol)
                             {
                                 if (rule.DestIp.Contains(destIp) && rule.SourceIp.Contains(sourceIp))
                                 {

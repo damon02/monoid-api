@@ -16,7 +16,8 @@ namespace backend_core
         public ObjectId Id { get; set; }
         [JsonIgnore]
         public ObjectId UserId { get; set; }
-        public MainProtocol Protocol { get; set; }
+        public MainProtocol MainProtocol { get; set; }
+        public Protocol Protocol { get; set; }
         public string[] DestIp { get; set; }
         public string[] SourceIp { get; set; }
         public int[] DestPort { get; set; }

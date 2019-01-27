@@ -189,6 +189,7 @@ namespace BackendApi.Controllers
                 SourcePort = model.SourcePort,
                 Message = model.Message,
                 Protocol = model.Protocol,
+                MainProtocol = model.MainProtocol,
                 Risk = model.Risk,
                 UserId = userId
             };

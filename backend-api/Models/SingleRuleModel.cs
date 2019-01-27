@@ -8,7 +8,8 @@ namespace BackendApi
 {
     public class SingleRuleModel
     {
-        public MainProtocol Protocol { get; set; }
+        public MainProtocol MainProtocol { get; set; }
+        public Protocol Protocol { get; set; }
         public string[] DestIp { get; set; }
         public string[] SourceIp { get; set; }
         public int[] DestPort { get; set; }
